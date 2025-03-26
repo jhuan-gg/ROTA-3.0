@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enviar Rota</title>
+  <link rel="stylesheet" href="styles.css"> <!-- Link para o arquivo CSS -->
+</head>
+<body>
+  <div class="logo">
+    <img src="./zuttel.png" alt="">
+  </div>
+  <div class="container">
+    <h1>Enviar Rota</h1>
+    <form id="messageForm">
+      <label for="csvFile">Selecionar Arquivo CSV:</label>
+      <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
+      <br>
+      <label for="messageData">IDs e OS (Ordem de Serviço):</label>
+      <textarea id="messageData" name="messageData" rows="10" cols="50" required></textarea>
+      <br>
+      <div class="agendamento">
+        <button type="submit">Enviar</button>
+        <button type="button" id="clearUploads">Limpar Cache Residual</button> <!-- Botão para limpar cache residual -->
+        <button type="button" class="color" onclick="window.location.href='agendamento.html'">Agendar Envio de Rota</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('messageForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      const csvFile = document.getElementById('csvFile').files[0];
+      const messageData = document.getElementById('messageData').value;
+
+      if (!csvFile) {
+        alert('Por favor, selecione um arquivo CSV.');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('csvFile', csvFile);
+      formData.append('messageData', messageData);
+
+      fetch('/send-message', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Resposta do servidor:', data); // Log da resposta do servidor
+        alert('Mensagens enviadas com sucesso!');
+      })
+      .catch(error => {
+        console.error('Erro ao enviar mensagens:', error); // Log do erro
+        alert('Erro ao enviar mensagens.');
+      });
+    });
+
+    document.getElementById('clearUploads').addEventListener('click', function() {
+      fetch('/clear-uploads', {
+        method: 'POST'
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Resposta do servidor:', data); // Log da resposta do servidor
+        alert('Cache residual limpo com sucesso!');
+      })
+      .catch(error => {
+        console.error('Erro ao limpar cache residual:', error); // Log do erro
+        alert('Erro ao limpar cache residual.');
+      });
+    });
+  </script>
+</body>
+</html>

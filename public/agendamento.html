@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendar Envio de Rota</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Link para o arquivo CSS -->
+</head>
+<body>
+    <div class="logo1">
+        <img src="./zuttel.png" alt="">
+    </div>
+    <div class="container">
+        <h1>Agendar Envio de Rota</h1>
+        <form id="scheduleForm">
+            <label for="csvFile">Selecionar Arquivo CSV:</label>
+            <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
+            <br>
+            <label for="messageData">IDs e OS (Ordem de Serviço):</label>
+            <textarea id="messageData" name="messageData" rows="10" cols="50" required></textarea>
+            <br>
+            <label for="scheduleTime">Hora de Envio:</label>
+            <input type="time" id="scheduleTime" name="scheduleTime" required>
+            <br>
+            <label for="scheduleDays">Dias da Semana:</label>
+            <div id="scheduleDays">
+                <label><input type="checkbox" name="scheduleDays" value="0"> Dom</label>
+                <label><input type="checkbox" name="scheduleDays" value="1"> Seg</label>
+                <label><input type="checkbox" name="scheduleDays" value="2"> Ter</label>
+                <label><input type="checkbox" name="scheduleDays" value="3"> Qua</label>
+                <label><input type="checkbox" name="scheduleDays" value="4"> Qui</label>
+                <label><input type="checkbox" name="scheduleDays" value="5"> Sex</label>
+                <label><input type="checkbox" name="scheduleDays" value="6"> Sáb</label>
+            </div>
+            <br>
+            <div class="agen">
+                <button type="submit">Salvar Configuração</button>
+                <button type="button" id="clearConfig">Limpar Configuração</button> <!-- Botão para limpar configuração -->
+                <button type="button" class="color" onclick="window.location.href='index.html'">Envio de Rota agora</button>
+                <button type="button" id="clearUploads">Limpar Cache Residual</button> <!-- Botão para limpar cache residual -->
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('scheduleForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const csvFile = document.getElementById('csvFile').files[0];
+            const messageData = document.getElementById('messageData').value;
+            const scheduleTime = document.getElementById('scheduleTime').value;
+            const scheduleDays = Array.from(document.querySelectorAll('input[name="scheduleDays"]:checked')).map(checkbox => checkbox.value);
+
+            if (!csvFile) {
+                alert('Por favor, selecione um arquivo CSV.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('csvFile', csvFile);
+            formData.append('messageData', messageData);
+            formData.append('scheduleTime', scheduleTime);
+            formData.append('scheduleDays', JSON.stringify(scheduleDays));
+
+            fetch('/schedule-message', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Resposta do servidor:', data); // Log da resposta do servidor
+                alert('Configuração de agendamento salva com sucesso!');
+                if (data.rotaEnviada) {
+                    alert('Rota agendada enviada com sucesso!'); // Alerta informando que a rota agendada foi enviada
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao salvar configuração de agendamento:', error); // Log do erro
+                alert('Erro ao salvar configuração de agendamento.');
+            });
+        });
+
+        document.getElementById('clearConfig').addEventListener('click', function() {
+            fetch('/clear-schedule', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Resposta do servidor:', data); // Log da resposta do servidor
+                alert('Configuração de agendamento limpa com sucesso!');
+            })
+            .catch(error => {
+                console.error('Erro ao limpar configuração de agendamento:', error); // Log do erro
+                alert('Erro ao limpar configuração de agendamento.');
+            });
+        });
+
+        document.getElementById('clearUploads').addEventListener('click', function() {
+            fetch('/clear-uploads', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Resposta do servidor:', data); // Log da resposta do servidor
+                alert('Cache residual limpo com sucesso!');
+            })
+            .catch(error => {
+                console.error('Erro ao limpar cache residual:', error); // Log do erro
+                alert('Erro ao limpar cache residual.');
+            });
+        });
+    </script>
+</body>
+</html>

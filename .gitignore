@@ -1,2 +1,4 @@
 node_modules/
 tokens/sessionName
+logs/
+uploads/

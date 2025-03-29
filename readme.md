@@ -21,6 +21,20 @@ O projeto **ROTA 3.0** é uma aplicação web para envio e agendamento de rotas 
 - **`node_modules/`**: Dependências do projeto gerenciadas pelo npm.
 - **`.gitignore`**: Arquivo para ignorar diretórios e arquivos desnecessários no controle de versão.
 
+## Sistema de Logging
+
+Todas as ações do sistema são registradas no arquivo `logs/application.log`. Os logs incluem data, hora e fuso horário de São Paulo.
+
+### Exemplo de Log
+```
+[2025-03-29 16:29:16-03:00] Servidor iniciado.
+[2025-03-29 16:29:16-03:00] Server running at http://0.0.0.0:3000
+```
+
+## Como Usar
+- Certifique-se de que a pasta `logs` existe ou será criada automaticamente.
+- Os logs são gerados automaticamente durante a execução do servidor.
+
 ## Pré-requisitos
 
 - **Node.js**: Certifique-se de ter o Node.js instalado.

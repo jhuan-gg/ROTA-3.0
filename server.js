@@ -5,6 +5,8 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const schedule = require('node-schedule'); // Adicionar biblioteca node-schedule
 const path = require('path'); // Adicionar biblioteca path
+const { format } = require('date-fns');
+const { zonedTimeToUtc, format: formatTz } = require('date-fns-tz'); // Adicionar biblioteca date-fns-tz
 const app = express();
 const port = 3000;
 
@@ -51,14 +53,32 @@ const tecnicosTerceirizados = [
 
 let currentJob = null; // Variável para armazenar o job agendado
 
+// Função para registrar logs
+function logMessage(message) {
+    const logDir = path.join(__dirname, 'logs');
+    const logFile = path.join(logDir, 'application.log');
+    const timeZone = 'America/Sao_Paulo';
+    const now = new Date(); // Corrigido para usar Date diretamente
+    const timestamp = formatTz(now, 'yyyy-MM-dd HH:mm:ssXXX', { timeZone });
+
+    if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir);
+    }
+
+    const logEntry = `[${timestamp}] ${message}\n`;
+    fs.appendFileSync(logFile, logEntry);
+}
+
 venom.create(
     'sessionName',
     (base64Qr, asciiQR, attempts, urlCode) => {
         console.log(asciiQR);
+        logMessage(`QR Code gerado: ${asciiQR}`);
     },
     (statusSession, session) => {
         console.log('Status Session: ', statusSession);
         console.log('Session name: ', session);
+        logMessage(`Status da sessão: ${statusSession}, Nome da sessão: ${session}`);
     },
     {
         headless: true,
@@ -70,17 +90,23 @@ venom.create(
         refreshQR: 15000,
         autoClose: 60000,
         disableSpins: true,
-    },
-).then((client) => start(client));
+    }
+).then((client) => start(client))
+  .catch((error) => {
+      console.error('Erro ao iniciar o Venom:', error);
+      logMessage(`Erro ao iniciar o Venom: ${error.message}`);
+  });
 
 function start(client) {
   app.post('/send-message', upload.single('csvFile'), (req, res) => {
     const { messageData } = req.body;
     if (req.file && messageData) {
       console.log(`Arquivo CSV recebido: ${req.file.path}`); // Log do arquivo recebido
+      logMessage(`Arquivo CSV recebido: ${req.file.path}`);
       processCSV(client, req.file.path, messageData, res);
     } else {
       res.status(400).send({ error: 'Arquivo CSV ou dados de mensagem não encontrados' });
+      logMessage('Erro: Arquivo CSV ou dados de mensagem não encontrados');
     }
   });
 
@@ -88,6 +114,7 @@ function start(client) {
     const { messageData, scheduleTime, scheduleDays } = req.body;
     if (req.file && messageData && scheduleTime && scheduleDays) {
       console.log(`Arquivo CSV recebido para agendamento: ${req.file.path}`); // Log do arquivo recebido
+      logMessage(`Arquivo CSV recebido para agendamento: ${req.file.path}`);
       const scheduleConfig = {
         csvFilePath: req.file.path,
         messageData,
@@ -95,10 +122,12 @@ function start(client) {
         scheduleDays: JSON.parse(scheduleDays)
       };
       fs.writeFileSync('scheduleConfig.json', JSON.stringify(scheduleConfig)); // Salvar configuração em um arquivo JSON
+      logMessage('Configuração de agendamento salva com sucesso!');
       scheduleMessages(client, scheduleConfig);
       res.status(200).send({ message: 'Configuração de agendamento salva com sucesso!' });
     } else {
       res.status(400).send({ error: 'Dados de agendamento incompletos' });
+      logMessage('Erro: Dados de agendamento incompletos');
     }
   });
 
@@ -108,8 +137,10 @@ function start(client) {
       currentJob = null;
       fs.unlinkSync('scheduleConfig.json'); // Remover o arquivo de configuração
       res.status(200).send({ message: 'Configuração de agendamento limpa com sucesso!' });
+      logMessage('Configuração de agendamento limpa com sucesso!');
     } else {
       res.status(400).send({ error: 'Nenhuma configuração de agendamento encontrada' });
+      logMessage('Erro: Nenhuma configuração de agendamento encontrada');
     }
   });
 
@@ -118,6 +149,7 @@ function start(client) {
 
     fs.readdir(directory, (err, files) => {
       if (err) {
+        logMessage(`Erro ao ler a pasta de uploads: ${err.message}`);
         return res.status(500).send({ error: 'Erro ao ler a pasta de uploads' });
       }
 
@@ -128,15 +160,18 @@ function start(client) {
           if (err) {
             errorOccurred = true;
             console.error(`Erro ao limpar arquivo ${file}:`, err);
+            logMessage(`Erro ao limpar arquivo ${file}: ${err.message}`);
           }
         });
       });
 
       if (errorOccurred) {
+        logMessage('Erro ao limpar alguns arquivos de uploads');
         return res.status(500).send({ error: 'Erro ao limpar alguns arquivos de uploads' });
       }
 
       res.status(200).send({ message: 'Cache residual limpo com sucesso!' });
+      logMessage('Cache residual limpo com sucesso!');
     });
   });
 }
@@ -147,18 +182,20 @@ function scheduleMessages(client, config) {
 
   if (currentJob) {
     currentJob.cancel(); // Cancelar o job anterior, se existir
+    logMessage('Job anterior cancelado');
   }
 
   currentJob = schedule.scheduleJob({ hour, minute, dayOfWeek: daysOfWeek }, () => {
     processCSV(client, config.csvFilePath, config.messageData, {
       status: (code) => ({ send: (response) => {
         console.log(response);
-        console.log('Rota agendada enviada com sucesso!'); // Log em vez de alerta
+        logMessage(`Rota agendada enviada com sucesso! Resposta: ${response}`);
       }})
     });
   });
 
   console.log(`Mensagens agendadas para ${config.scheduleTime} nos dias ${config.scheduleDays.join(', ')}`);
+  logMessage(`Mensagens agendadas para ${config.scheduleTime} nos dias ${config.scheduleDays.join(', ')}`);
 }
 
 function processCSV(client, filePath, messageData, res) {
@@ -210,13 +247,16 @@ function processCSV(client, filePath, messageData, res) {
               orderCounter++;
             } else {
               console.error(`Chat do técnico "${tecnico}" não encontrado!`);
+              logMessage(`Erro: Chat do técnico "${tecnico}" não encontrado!`);
             }
           } else {
             console.error(`OS ${os.trim()} não encontrada no arquivo CSV.`);
+            logMessage(`Erro: OS ${os.trim()} não encontrada no arquivo CSV.`);
           }
         }
       }
       res.status(200).send({ message: 'Mensagens enviadas com sucesso!', rotaEnviada: true });
+      logMessage('Mensagens enviadas com sucesso!');
       console.log('Rota agendada enviada com sucesso!'); // Log após o envio das mensagens
     });
 }
@@ -240,12 +280,15 @@ async function buscarEEnviarMensagem(client, nomeChat, mensagem) {
 
     if (chatEncontrado) {
       console.log(`Chat "${nomeChat}" encontrado! ID: ${chatEncontrado.id._serialized}`);
+      logMessage(`Chat "${nomeChat}" encontrado! ID: ${chatEncontrado.id._serialized}`);
       await enviarMensagens(client, chatEncontrado.id._serialized, mensagem);
     } else {
       console.error(`Chat "${nomeChat}" não encontrado!`);
+      logMessage(`Erro: Chat "${nomeChat}" não encontrado!`);
     }
   } catch (error) {
     console.error(`Erro ao buscar o chat "${nomeChat}":`, error);
+    logMessage(`Erro ao buscar o chat "${nomeChat}": ${error.message}`);
   }
 }
 
@@ -253,11 +296,14 @@ async function enviarMensagens(client, chat, mensagem) {
   try {
     await client.sendText(chat, mensagem);
     console.log(`Mensagem enviada para ${chat}: ${mensagem}`);
+    logMessage(`Mensagem enviada para ${chat}: ${mensagem}`);
   } catch (error) {
     console.error(`Erro ao enviar mensagem para ${chat}:`, error);
+    logMessage(`Erro ao enviar mensagem para ${chat}: ${error.message}`);
   }
 }
 
 app.listen(port, '0.0.0.0', () => {
   console.log(`Server running at http://0.0.0.0:${port}`);
+  logMessage(`Server running at http://0.0.0.0:${port}`);
 });

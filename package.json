@@ -15,6 +15,7 @@
     "express": "^4.21.2",
     "multer": "^1.4.5-lts.1",
     "node-schedule": "^2.1.1",
-    "venom-bot": "^5.3.0"
+    "venom-bot": "^5.3.0",
+    "date-fns-tz": "^2.0.0"
   }
 }

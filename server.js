@@ -29,7 +29,7 @@ const chatsTecnicos = {
     'Jefferson da Graça': 'Atendimentos Jefferson',
     'Kaique Cassiano Souza': 'Atendimentos Kaique',
     'Téc Terceirizado - Odair José Vieira': 'Atendimentos Odair',
-    'Téc Terceirizado WENDEL - Alisson Santos de Cristo': 'Atendimentos Wendel',
+    'Téc Terceirizado WENDEL - Alisson Santos de Cristo': 'Atendimentos Alisson - Wendel',
     'Andressa Pereira Fernandes': 'Atendimentos Andressa',
     'Téc Terceirizado HIF - Thiago Fonseca': 'Atendimentos Thiago - HIF 2',
     'Téc Terceirizado EZEQUIEL - Ezequiel dos Santos': 'Atendimentos Ezequiel',

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agendar Envio de Rota</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Link para o arquivo CSS -->
-    <link rel="icon" href="zut.png" type="image/png"> <!-- Ícone da página -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="zut.png" type="image/png">
 </head>
 <body>
     <div class="logo1">
@@ -39,9 +39,9 @@
             <br>
             <div class="agen">
                 <button type="submit">Salvar Configuração</button>
-                <button type="button" id="clearConfig">Limpar Configuração</button> <!-- Botão para limpar configuração -->
+                <button type="button" id="clearConfig">Limpar Configuração</button>
                 <button type="button" class="color" onclick="window.location.href='index.html'">Envio de Rota agora</button>
-                <button type="button" id="clearUploads">Limpar Cache Residual</button> <!-- Botão para limpar cache residual -->
+                <button type="button" id="clearUploads">Limpar Cache Residual</button>
             </div>
         </form>
     </div>
@@ -71,14 +71,14 @@
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Resposta do servidor:', data); // Log da resposta do servidor
+                console.log('Resposta do servidor:', data);
                 alert('Configuração de agendamento salva com sucesso!');
                 if (data.rotaEnviada) {
-                    alert('Rota agendada enviada com sucesso!'); // Alerta informando que a rota agendada foi enviada
+                    alert('Rota agendada enviada com sucesso!');
                 }
             })
             .catch(error => {
-                console.error('Erro ao salvar configuração de agendamento:', error); // Log do erro
+                console.error('Erro ao salvar configuração de agendamento:', error); 
                 alert('Erro ao salvar configuração de agendamento.');
             });
         });
@@ -89,11 +89,11 @@
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Resposta do servidor:', data); // Log da resposta do servidor
+                console.log('Resposta do servidor:', data);
                 alert('Configuração de agendamento limpa com sucesso!');
             })
             .catch(error => {
-                console.error('Erro ao limpar configuração de agendamento:', error); // Log do erro
+                console.error('Erro ao limpar configuração de agendamento:', error); 
                 alert('Erro ao limpar configuração de agendamento.');
             });
         });
@@ -104,11 +104,11 @@
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Resposta do servidor:', data); // Log da resposta do servidor
+                console.log('Resposta do servidor:', data);
                 alert('Cache residual limpo com sucesso!');
             })
             .catch(error => {
-                console.error('Erro ao limpar cache residual:', error); // Log do erro
+                console.error('Erro ao limpar cache residual:', error);
                 alert('Erro ao limpar cache residual.');
             });
         });

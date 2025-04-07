@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Enviar Rota</title>
-  <link rel="stylesheet" href="styles.css"> <!-- Link para o arquivo CSS -->
-  <link rel="icon" href="zut.png" type="image/png"> <!-- Ícone da página -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="zut.png" type="image/png">
 </head>
 <body>
   <div class="logo">
@@ -25,7 +25,7 @@
       <br>
       <div class="agendamento">
         <button type="submit">Enviar</button>
-        <button type="button" id="clearUploads">Limpar Cache Residual</button> <!-- Botão para limpar cache residual -->
+        <button type="button" id="clearUploads">Limpar Cache Residual</button>
         <button type="button" class="color" onclick="window.location.href='agendamento.html'">Agendar Envio de Rota</button>
       </div>
     </form>
@@ -52,11 +52,11 @@
       })
       .then(response => response.json())
       .then(data => {
-        console.log('Resposta do servidor:', data); // Log da resposta do servidor
+        console.log('Resposta do servidor:', data);
         alert('Mensagens enviadas com sucesso!');
       })
       .catch(error => {
-        console.error('Erro ao enviar mensagens:', error); // Log do erro
+        console.error('Erro ao enviar mensagens:', error);
         alert('Erro ao enviar mensagens.');
       });
     });
@@ -67,11 +67,11 @@
       })
       .then(response => response.json())
       .then(data => {
-        console.log('Resposta do servidor:', data); // Log da resposta do servidor
+        console.log('Resposta do servidor:', data); 
         alert('Cache residual limpo com sucesso!');
       })
       .catch(error => {
-        console.error('Erro ao limpar cache residual:', error); // Log do erro
+        console.error('Erro ao limpar cache residual:', error);
         alert('Erro ao limpar cache residual.');
       });
     });

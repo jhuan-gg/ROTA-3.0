@@ -3,10 +3,10 @@ const venom = require('venom-bot');
 const multer = require('multer');
 const csv = require('csv-parser');
 const fs = require('fs');
-const schedule = require('node-schedule'); // Adicionar biblioteca node-schedule
-const path = require('path'); // Adicionar biblioteca path
+const schedule = require('node-schedule'); 
+const path = require('path');
 const { format } = require('date-fns');
-const { zonedTimeToUtc, format: formatTz } = require('date-fns-tz'); // Adicionar biblioteca date-fns-tz
+const { zonedTimeToUtc, format: formatTz } = require('date-fns-tz'); 
 const app = express();
 const port = 3000;
 
@@ -51,9 +51,9 @@ const tecnicosTerceirizados = [
     'Técnico Zuttel',
 ];
 
-let currentJob = null; // Variável para armazenar o job agendado
+let currentJob = null;
 
-// Função para registrar logs
+
 function logMessage(message) {
     const logDir = path.join(__dirname, 'logs');
     const logFile = path.join(logDir, 'application.log');
@@ -181,7 +181,7 @@ function scheduleMessages(client, config) {
   const daysOfWeek = config.scheduleDays.map(Number);
 
   if (currentJob) {
-    currentJob.cancel(); // Cancelar o job anterior, se existir
+    currentJob.cancel(); 
     logMessage('Job anterior cancelado');
   }
 

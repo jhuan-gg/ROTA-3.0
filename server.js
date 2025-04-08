@@ -48,7 +48,6 @@ const tecnicosTerceirizados = [
     'Téc Terceirizado HIF - Thiago Fonseca',
     'Téc Terceirizado EZEQUIEL - Ezequiel dos Santos',
     'Téc Terceirizado - Cleverson Gregorio dos Santos',
-    'Técnico Zuttel',
 ];
 
 let currentJob = null;
@@ -99,27 +98,28 @@ venom.create(
 
 function start(client) {
   app.post('/send-message', upload.single('csvFile'), (req, res) => {
-    const { messageData } = req.body;
-    if (req.file && messageData) {
+    const { messageData, technicianType } = req.body;
+    if (req.file && messageData && technicianType) {
       console.log(`Arquivo CSV recebido: ${req.file.path}`); // Log do arquivo recebido
       logMessage(`Arquivo CSV recebido: ${req.file.path}`);
-      processCSV(client, req.file.path, messageData, res);
+      processCSV(client, req.file.path, messageData, technicianType, res);
     } else {
-      res.status(400).send({ error: 'Arquivo CSV ou dados de mensagem não encontrados' });
-      logMessage('Erro: Arquivo CSV ou dados de mensagem não encontrados');
+      res.status(400).send({ error: 'Arquivo CSV, dados de mensagem ou tipo de técnico não encontrados' });
+      logMessage('Erro: Arquivo CSV, dados de mensagem ou tipo de técnico não encontrados');
     }
   });
 
   app.post('/schedule-message', upload.single('csvFile'), (req, res) => {
-    const { messageData, scheduleTime, scheduleDays } = req.body;
-    if (req.file && messageData && scheduleTime && scheduleDays) {
+    const { messageData, scheduleTime, scheduleDays, technicianType } = req.body;
+    if (req.file && messageData && scheduleTime && scheduleDays && technicianType) {
       console.log(`Arquivo CSV recebido para agendamento: ${req.file.path}`); // Log do arquivo recebido
       logMessage(`Arquivo CSV recebido para agendamento: ${req.file.path}`);
       const scheduleConfig = {
         csvFilePath: req.file.path,
         messageData,
         scheduleTime,
-        scheduleDays: JSON.parse(scheduleDays)
+        scheduleDays: JSON.parse(scheduleDays),
+        technicianType
       };
       fs.writeFileSync('scheduleConfig.json', JSON.stringify(scheduleConfig)); // Salvar configuração em um arquivo JSON
       logMessage('Configuração de agendamento salva com sucesso!');
@@ -186,7 +186,7 @@ function scheduleMessages(client, config) {
   }
 
   currentJob = schedule.scheduleJob({ hour, minute, dayOfWeek: daysOfWeek }, () => {
-    processCSV(client, config.csvFilePath, config.messageData, {
+    processCSV(client, config.csvFilePath, config.messageData, config.technicianType, {
       status: (code) => ({ send: (response) => {
         console.log(response);
         logMessage(`Rota agendada enviada com sucesso! Resposta: ${response}`);
@@ -198,7 +198,7 @@ function scheduleMessages(client, config) {
   logMessage(`Mensagens agendadas para ${config.scheduleTime} nos dias ${config.scheduleDays.join(', ')}`);
 }
 
-function processCSV(client, filePath, messageData, res) {
+function processCSV(client, filePath, messageData, technicianType, res) {
   const results = [];
   const messageMap = parseMessageData(messageData);
   fs.createReadStream(filePath)
@@ -214,8 +214,13 @@ function processCSV(client, filePath, messageData, res) {
           const item = results.find(row => row.ID === os.trim());
           if (item) {
             const tecnico = item.Colaborador.trim();
-            const nomeCliente = item.Cliente.split(' - ')[1] || item.Cliente;
-            let mensagem = `
+            if (
+              (technicianType === 'terceirizados' && tecnicosTerceirizados.includes(tecnico)) ||
+              (technicianType === 'internos' && !tecnicosTerceirizados.includes(tecnico) && tecnico !== 'Técnico Zuttel') ||
+              (technicianType === 'naoEncaminhadas' && tecnico === 'Técnico Zuttel')
+            ) {
+              const nomeCliente = item.Cliente.split(' - ')[1] || item.Cliente;
+              let mensagem = `
 *OS:* ${item.ID}
 *Cliente:* ${id.trim()} - ${nomeCliente}
 *Endereço:* ${item.Endereço} *Bairro:* ${item.Bairro} *Cidade:* ${item.Cidade}
@@ -231,23 +236,24 @@ function processCSV(client, filePath, messageData, res) {
 
 *Login PPPoE:* ${item.Login}
 *Senha PPPoE:* ${item['Senha MD5 PPPoE/Hotspot']}
-            `;
+              `;
 
-            if (tecnicosTerceirizados.includes(tecnico)) {
-              mensagem += `\n*Telefone do Cliente:* ${item['Telefone celular']}`;
-            }
-
-            if (chatsTecnicos[tecnico]) {
-              if (currentChat !== chatsTecnicos[tecnico]) {
-                currentChat = chatsTecnicos[tecnico];
-                orderCounter = 1; // Redefine o contador para 1 ao mudar de chat
+              if (tecnicosTerceirizados.includes(tecnico)) {
+                mensagem += `\n*Telefone do Cliente:* ${item['Telefone celular']}`;
               }
-              mensagem = `*${orderCounter}° da rota*\n` + mensagem; // Adiciona a ordem de execução na mensagem
-              await buscarEEnviarMensagem(client, currentChat, mensagem);
-              orderCounter++;
-            } else {
-              console.error(`Chat do técnico "${tecnico}" não encontrado!`);
-              logMessage(`Erro: Chat do técnico "${tecnico}" não encontrado!`);
+
+              if (chatsTecnicos[tecnico]) {
+                if (currentChat !== chatsTecnicos[tecnico]) {
+                  currentChat = chatsTecnicos[tecnico];
+                  orderCounter = 1; // Redefine o contador para 1 ao mudar de chat
+                }
+                mensagem = `*${orderCounter}° da rota*\n` + mensagem; // Adiciona a ordem de execução na mensagem
+                await buscarEEnviarMensagem(client, currentChat, mensagem);
+                orderCounter++;
+              } else {
+                console.error(`Chat do técnico "${tecnico}" não encontrado!`);
+                logMessage(`Erro: Chat do técnico "${tecnico}" não encontrado!`);
+              }
             }
           } else {
             console.error(`OS ${os.trim()} não encontrada no arquivo CSV.`);

@@ -23,6 +23,13 @@
       <label for="messageData">IDs e OS (Ordem de Serviço):</label>
       <textarea id="messageData" name="messageData" rows="10" cols="50" required></textarea>
       <br>
+      <label for="technicianType">Tipo de Técnico:</label>
+      <select id="technicianType" name="technicianType" required>
+        <option value="terceirizados">Terceirizados</option>
+        <option value="internos">Internos</option>
+        <option value="naoEncaminhadas">Não Encaminhadas</option>
+      </select>
+      <br>
       <div class="agendamento">
         <button type="submit">Enviar</button>
         <button type="button" id="clearUploads">Limpar Cache Residual</button>
@@ -36,6 +43,7 @@
       event.preventDefault();
       const csvFile = document.getElementById('csvFile').files[0];
       const messageData = document.getElementById('messageData').value;
+      const technicianType = document.getElementById('technicianType').value;
 
       if (!csvFile) {
         alert('Por favor, selecione um arquivo CSV.');
@@ -45,6 +53,7 @@
       const formData = new FormData();
       formData.append('csvFile', csvFile);
       formData.append('messageData', messageData);
+      formData.append('technicianType', technicianType);
 
       fetch('/send-message', {
         method: 'POST',

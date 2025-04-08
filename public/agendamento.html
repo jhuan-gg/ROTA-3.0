@@ -37,6 +37,13 @@
                 <label><input type="checkbox" name="scheduleDays" value="6"> Sáb</label>
             </div>
             <br>
+            <label for="technicianType">Tipo de Técnico:</label>
+            <select id="technicianType" name="technicianType" required>
+                <option value="terceirizados">Terceirizados</option>
+                <option value="internos">Internos</option>
+                <option value="naoEncaminhadas">Não Encaminhadas</option>
+            </select>
+            <br>
             <div class="agen">
                 <button type="submit">Salvar Configuração</button>
                 <button type="button" id="clearConfig">Limpar Configuração</button>
@@ -53,6 +60,7 @@
             const messageData = document.getElementById('messageData').value;
             const scheduleTime = document.getElementById('scheduleTime').value;
             const scheduleDays = Array.from(document.querySelectorAll('input[name="scheduleDays"]:checked')).map(checkbox => checkbox.value);
+            const technicianType = document.getElementById('technicianType').value;
 
             if (!csvFile) {
                 alert('Por favor, selecione um arquivo CSV.');
@@ -64,6 +72,7 @@
             formData.append('messageData', messageData);
             formData.append('scheduleTime', scheduleTime);
             formData.append('scheduleDays', JSON.stringify(scheduleDays));
+            formData.append('technicianType', technicianType);
 
             fetch('/schedule-message', {
                 method: 'POST',

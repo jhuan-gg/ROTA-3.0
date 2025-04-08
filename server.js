@@ -48,6 +48,7 @@ const tecnicosTerceirizados = [
     'Téc Terceirizado HIF - Thiago Fonseca',
     'Téc Terceirizado EZEQUIEL - Ezequiel dos Santos',
     'Téc Terceirizado - Cleverson Gregorio dos Santos',
+    'Téc Terceirizado WENDEL - José Carlos de Castilho',
 ];
 
 let currentJob = null;

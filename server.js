@@ -218,7 +218,8 @@ function processCSV(client, filePath, messageData, technicianType, res) {
             if (
               (technicianType === 'terceirizados' && tecnicosTerceirizados.includes(tecnico)) ||
               (technicianType === 'internos' && !tecnicosTerceirizados.includes(tecnico) && tecnico !== 'Técnico Zuttel') ||
-              (technicianType === 'naoEncaminhadas' && tecnico === 'Técnico Zuttel')
+              (technicianType === 'naoEncaminhadas' && tecnico === 'Técnico Zuttel') ||
+              (technicianType === 'todos') // Nova condição para enviar todas as OSs
             ) {
               const nomeCliente = item.Cliente.split(' - ')[1] || item.Cliente;
               let mensagem = `
@@ -239,7 +240,7 @@ function processCSV(client, filePath, messageData, technicianType, res) {
 *Senha PPPoE:* ${item['Senha MD5 PPPoE/Hotspot']}
               `;
 
-              if (tecnicosTerceirizados.includes(tecnico)) {
+              if (tecnicosTerceirizados.includes(tecnico) || technicianType === 'naoEncaminhadas') {
                 mensagem += `\n*Telefone do Cliente:* ${item['Telefone celular']}`;
               }
 

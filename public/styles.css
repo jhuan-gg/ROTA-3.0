@@ -83,6 +83,30 @@ button:hover {
   background-color: var(--primary-hover-color);
 }
 
+/* Estilo para o select (filtro de tipos de técnicos) */
+select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid var(--input-border-light);
+  border-radius: 4px;
+  background-color: var(--input-background-light);
+  color: var(--text-color-light);
+  font-size: 16px;
+  appearance: none; /* Remove o estilo padrão do navegador */
+  background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23333" d="M2 0L0 2h4z"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px;
+  cursor: pointer;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
 /* Estilos responsivos para dispositivos móveis */
 @media (max-width: 600px) {
   .container {

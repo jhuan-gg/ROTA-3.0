@@ -36,6 +36,7 @@ const chatsTecnicos = {
     'Téc Terceirizado - Cleverson Gregorio dos Santos': 'Instalações - Cleverson',
     'Técnico Zuttel': 'OS´s não encaminhadas',
     'Téc Terceirizado WENDEL - José Carlos de Castilho': 'Atendimentos José - Wendel',
+    'Saulo Venancio Carneiro da Cunha': 'Provisório Atendimentos Saulo',
 };
 
 const tecnicosTerceirizados = [

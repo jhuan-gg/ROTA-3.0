@@ -59,7 +59,7 @@ function logMessage(message) {
     const logDir = path.join(__dirname, 'logs');
     const logFile = path.join(logDir, 'application.log');
     const timeZone = 'America/Sao_Paulo';
-    const now = new Date(); // Corrigido para usar Date diretamente
+    const now = new Date(); 
     const timestamp = formatTz(now, 'yyyy-MM-dd HH:mm:ssXXX', { timeZone });
 
     if (!fs.existsSync(logDir)) {
@@ -102,7 +102,7 @@ function start(client) {
   app.post('/send-message', upload.single('csvFile'), (req, res) => {
     const { messageData, technicianType } = req.body;
     if (req.file && messageData && technicianType) {
-      console.log(`Arquivo CSV recebido: ${req.file.path}`); // Log do arquivo recebido
+      console.log(`Arquivo CSV recebido: ${req.file.path}`); 
       logMessage(`Arquivo CSV recebido: ${req.file.path}`);
       processCSV(client, req.file.path, messageData, technicianType, res);
     } else {
@@ -114,7 +114,7 @@ function start(client) {
   app.post('/schedule-message', upload.single('csvFile'), (req, res) => {
     const { messageData, scheduleTime, scheduleDays, technicianType } = req.body;
     if (req.file && messageData && scheduleTime && scheduleDays && technicianType) {
-      console.log(`Arquivo CSV recebido para agendamento: ${req.file.path}`); // Log do arquivo recebido
+      console.log(`Arquivo CSV recebido para agendamento: ${req.file.path}`); 
       logMessage(`Arquivo CSV recebido para agendamento: ${req.file.path}`);
       const scheduleConfig = {
         csvFilePath: req.file.path,

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OS-Manager</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="logo">
+        <picture>
+          <source srcset="./zuttel3.png" media="(prefers-color-scheme: light)">
+          <img src="./zuttel.png" alt="Logo Zuttel">
+        </picture>
+      </div>
+    <div class="container">
+        <header>
+            <h1>Alimentar Planilha</h1>
+        </header>
+        <h3>Insira o arquivo CSV</h3>
+        <input type="file" class="csv" id="csvFile" accept=".csv">
+        <h3>Insira o arquivo XLS</h3>
+        <input type="file" id="xlsFile" accept=".xls, .xlsx">
+        <br><br>
+        <div class="layout">
+            <button class="tam" onclick="processFiles()">Processar</button>
+            <button class="tam"><a id="downloadLink">Baixar Arquivo</a></button>
+            <button class="color tam" onclick="window.location.href='index.html'">Voltar</button>
+        </div>
+    </div>
+    <script>
+        function processFiles() {
+            const csvFile = document.getElementById('csvFile').files[0];
+            const xlsFile = document.getElementById('xlsFile').files[0];
+
+            if (csvFile && xlsFile) {
+                const readerCSV = new FileReader();
+                const readerXLS = new FileReader();
+
+                readerCSV.onload = function (e) {
+                    const csvData = e.target.result;
+                    const csvWorkbook = XLSX.read(csvData, { type: 'string' });
+                    const csvSheet = csvWorkbook.Sheets[csvWorkbook.SheetNames[0]];
+                    const csvDataParsed = XLSX.utils.sheet_to_json(csvSheet);
+
+                    readerXLS.onload = function (e) {
+                        const xlsData = e.target.result;
+                        const xlsWorkbook = XLSX.read(xlsData, { type: 'binary' });
+                        const xlsSheet = xlsWorkbook.Sheets[xlsWorkbook.SheetNames[0]];
+                        const xlsDataParsed = XLSX.utils.sheet_to_json(xlsSheet);
+
+                        const mergedData = mergeData(csvDataParsed, xlsDataParsed);
+                        const wb = XLSX.utils.book_new();
+                        const ws = XLSX.utils.json_to_sheet(mergedData);
+                        XLSX.utils.book_append_sheet(wb, ws, "Dados Processados");
+                        
+                        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                        const blob = new Blob([s2ab(wbout)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        const url = URL.createObjectURL(blob);
+                        const link = document.getElementById('downloadLink');
+                        link.href = url;
+                        link.download = 'arquivo_final.xlsx';
+                        link.style.display = 'block';
+                        link.textContent = 'Baixar Arquivo';
+                    };
+
+                    readerXLS.readAsBinaryString(xlsFile);
+                };
+
+                readerCSV.readAsText(csvFile);
+            } else {
+                alert('Por favor, faça o upload de ambos os arquivos.');
+            }
+        }
+
+        function mergeData(csvData, xlsData) {
+            const cityMap = {
+                'Jaraguá do Sul': 'JGUA',
+                'Araquari': 'ARQ',
+                'Guaramirim': 'GRI',
+                'Schroeder': 'SCH',
+                'Joinville': 'JOI',
+                'Pomerode': 'POM',
+                'Corupá': 'COR',
+                'Corupa': 'COR'
+            };
+
+            const xlsDataMap = new Map(xlsData.map(row => [row.ID, row]));
+
+            return csvData.map(row => {
+                const xlsRow = xlsDataMap.get(row['ID O.S.']) || {};
+                const formattedCity = xlsRow.Cidade ? `${xlsRow.Bairro} – ${cityMap[xlsRow.Cidade] || xlsRow.Cidade}` : '';
+                return {
+                    'ID CLIENTE': row['ID CLIENTE'],
+                    'ID OS': row['ID O.S.'],
+                    'AGENDAMENTO': '',  // Coluna AGENDAMENTO retornando em branco
+                    'Cidade Reformulada': formattedCity,
+                    'Assunto': xlsRow.Assunto || '',
+                    'Horário': xlsRow['Melhor horário'] || ''
+                };
+            });
+        }
+
+        function s2ab(s) {
+            const buf = new ArrayBuffer(s.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+            return buf;
+        }
+    </script>
+</body>
+</html>

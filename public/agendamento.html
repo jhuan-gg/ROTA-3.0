@@ -14,8 +14,8 @@
         </div>
         <ul class="nav-links">
             <li><a href="index.html" class="nav-item">Enviar Rota</a></li>
-            <li><a href="AlmPlan.html" class="nav-item">Alimentar Planilha</a></li>
             <li><a href="agendamento.html" class="nav-item active">Agendar Envio de Rota</a></li>
+            <li><a href="AlmPlan.html" class="nav-item">Alimentar Planilha</a></li>
         </ul>
     </nav>
 
@@ -56,6 +56,13 @@
                 <button type="button" id="clearUploads">Limpar Cache Residual</button>
             </div>
         </form>
+        <div class="progress-container" style="display: none;">
+            <h3>Progresso do Agendamento</h3>
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            <p id="progressText">0%</p>
+        </div>
     </div>
 
     <script>
@@ -66,6 +73,9 @@
             const scheduleTime = document.getElementById('scheduleTime').value;
             const scheduleDays = Array.from(document.querySelectorAll('input[name="scheduleDays"]:checked')).map(checkbox => checkbox.value);
             const technicianType = document.getElementById('technicianType').value;
+            const progressContainer = document.querySelector('.progress-container');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
 
             if (!csvFile) {
                 alert('Por favor, selecione um arquivo CSV.');
@@ -79,22 +89,28 @@
             formData.append('scheduleDays', JSON.stringify(scheduleDays));
             formData.append('technicianType', technicianType);
 
+            // Enviar requisição para o endpoint correto
             fetch('/schedule-message', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Resposta do servidor:', data);
-                alert('Configuração de agendamento salva com sucesso!');
-                if (data.rotaEnviada) {
-                    alert('Rota agendada enviada com sucesso!');
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao agendar mensagens');
                 }
+                // Após agendar com sucesso
+                alert('Agendamento configurado com sucesso!');
+                progressContainer.style.display = 'none';
             })
             .catch(error => {
-                console.error('Erro ao salvar configuração de agendamento:', error); 
-                alert('Erro ao salvar configuração de agendamento.');
+                console.error('Erro:', error);
+                progressContainer.style.display = 'none';
+                alert('Erro ao agendar mensagens: ' + error.message);
             });
+
+            // Remover o EventSource pois não é necessário para agendamento
+            // const eventSource = new EventSource('/send-message'); // <-- Remover esta linha
+            // ...remove todo o código do EventSource...
         });
 
         document.getElementById('clearConfig').addEventListener('click', function() {

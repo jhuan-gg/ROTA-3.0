@@ -53,7 +53,8 @@ const tecnicosTerceirizados = [
 ];
 
 let currentJob = null;
-
+let currentProgress = 0;
+let clients = new Set();
 
 function logMessage(message) {
     const logDir = path.join(__dirname, 'logs');
@@ -102,36 +103,51 @@ function start(client) {
   app.post('/send-message', upload.single('csvFile'), (req, res) => {
     const { messageData, technicianType } = req.body;
     if (req.file && messageData && technicianType) {
-      console.log(`Arquivo CSV recebido: ${req.file.path}`); 
-      logMessage(`Arquivo CSV recebido: ${req.file.path}`);
-      processCSV(client, req.file.path, messageData, technicianType, res);
+      currentProgress = 0;
+      // Inicia o processamento em background
+      processCSV(client, req.file.path, messageData, technicianType);
+      res.status(200).send({ message: 'Processamento iniciado' });
     } else {
       res.status(400).send({ error: 'Arquivo CSV, dados de mensagem ou tipo de técnico não encontrados' });
       logMessage('Erro: Arquivo CSV, dados de mensagem ou tipo de técnico não encontrados');
     }
   });
 
+  app.get('/message-progress', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+
+    // Adiciona este cliente à lista de clientes conectados
+    clients.add(res);
+
+    // Remove o cliente quando a conexão for fechada
+    req.on('close', () => {
+      clients.delete(res);
+    });
+  });
+
   app.post('/schedule-message', upload.single('csvFile'), (req, res) => {
     const { messageData, scheduleTime, scheduleDays, technicianType } = req.body;
     if (req.file && messageData && scheduleTime && scheduleDays && technicianType) {
-      console.log(`Arquivo CSV recebido para agendamento: ${req.file.path}`); 
-      logMessage(`Arquivo CSV recebido para agendamento: ${req.file.path}`);
-      const scheduleConfig = {
-        csvFilePath: req.file.path,
-        messageData,
-        scheduleTime,
-        scheduleDays: JSON.parse(scheduleDays),
-        technicianType
-      };
-      fs.writeFileSync('scheduleConfig.json', JSON.stringify(scheduleConfig)); // Salvar configuração em um arquivo JSON
-      logMessage('Configuração de agendamento salva com sucesso!');
-      scheduleMessages(client, scheduleConfig);
-      res.status(200).send({ message: 'Configuração de agendamento salva com sucesso!' });
+        console.log(`Arquivo CSV recebido para agendamento: ${req.file.path}`);
+        logMessage(`Arquivo CSV recebido para agendamento: ${req.file.path}`);
+        const scheduleConfig = {
+            csvFilePath: req.file.path,
+            messageData,
+            scheduleTime,
+            scheduleDays: JSON.parse(scheduleDays),
+            technicianType
+        };
+        fs.writeFileSync('scheduleConfig.json', JSON.stringify(scheduleConfig));
+        logMessage('Configuração de agendamento salva com sucesso!');
+        scheduleMessages(client, scheduleConfig);
+        res.status(200).send({ message: 'Configuração de agendamento salva com sucesso!' });
     } else {
-      res.status(400).send({ error: 'Dados de agendamento incompletos' });
-      logMessage('Erro: Dados de agendamento incompletos');
+        res.status(400).send({ error: 'Dados de agendamento incompletos' });
+        logMessage('Erro: Dados de agendamento incompletos');
     }
-  });
+});
 
   app.post('/clear-schedule', (req, res) => {
     if (currentJob) {
@@ -188,47 +204,53 @@ function scheduleMessages(client, config) {
   }
 
   currentJob = schedule.scheduleJob({ hour, minute, dayOfWeek: daysOfWeek }, () => {
-    processCSV(client, config.csvFilePath, config.messageData, config.technicianType, {
-      status: (code) => ({ send: (response) => {
-        console.log(response);
-        logMessage(`Rota agendada enviada com sucesso! Resposta: ${response}`);
-      }})
-    });
+    processCSV(client, config.csvFilePath, config.messageData, config.technicianType);
+    logMessage('Rota agendada iniciada');
   });
 
   console.log(`Mensagens agendadas para ${config.scheduleTime} nos dias ${config.scheduleDays.join(', ')}`);
   logMessage(`Mensagens agendadas para ${config.scheduleTime} nos dias ${config.scheduleDays.join(', ')}`);
 }
 
-function processCSV(client, filePath, messageData, technicianType, res) {
+// Modifique a função processCSV para:
+function processCSV(client, filePath, messageData, technicianType) {
   const results = [];
-  const messageMap = parseMessageData(messageData);
+  let totalMessages = 0;
+  let processedMessages = 0;
+  let currentChat = null;
+  let orderCounter = 1;
+
+  // Primeiro, contamos o total de mensagens
+  messageData.split('\n').forEach(line => {
+    const [id, os] = line.split('\t');
+    if (id && os) totalMessages++;
+  });
+
   fs.createReadStream(filePath)
     .pipe(csv({ separator: ';' }))
     .on('data', (data) => results.push(data))
     .on('end', async () => {
-      let currentChat = null;
-      let orderCounter = 1;
-
-      for (const line of messageData.split('\n')) {
-        const [id, os] = line.split('\t');
-        if (id && os) {
-          const item = results.find(row => row.ID === os.trim());
-          if (item) {
-            const tecnico = item.Colaborador.trim();
-            if (
-              (technicianType === 'terceirizados' && tecnicosTerceirizados.includes(tecnico)) ||
-              (technicianType === 'internos' && !tecnicosTerceirizados.includes(tecnico) && tecnico !== 'Técnico Zuttel') ||
-              (technicianType === 'naoEncaminhadas' && tecnico === 'Técnico Zuttel') ||
-              (technicianType === 'todos') // Nova condição para enviar todas as OSs
-            ) {
-              const nomeCliente = item.Cliente.split(' - ')[1] || item.Cliente;
-              let mensagem = `
+      try {
+        for (const line of messageData.split('\n')) {
+          const [id, os] = line.split('\t');
+          if (id && os) {
+            const item = results.find(row => row.ID === os.trim());
+            if (item) {
+              const tecnico = item.Colaborador.trim();
+              if (
+                (technicianType === 'terceirizados' && tecnicosTerceirizados.includes(tecnico)) ||
+                (technicianType === 'internos' && !tecnicosTerceirizados.includes(tecnico) && tecnico !== 'Técnico Zuttel') ||
+                (technicianType === 'naoEncaminhadas' && tecnico === 'Técnico Zuttel') ||
+                (technicianType === 'todos')
+              ) {
+                try {
+                  const nomeCliente = item.Cliente.split(' - ')[1] || item.Cliente;
+                  let mensagem = `
 *OS:* ${item.ID}
 *Cliente:* ${id.trim()} - ${nomeCliente}
 *Endereço:* ${item.Endereço} *Bairro:* ${item.Bairro} *Cidade:* ${item.Cidade}
-*Bloco:* ${item.Bloco}
-*Apto:* ${item.Apartamento}
+*Bloco:* ${item.Bloco} *Apto:* ${item.Apartamento}
+*Referência:* ${item.Referência}
 *Loc:* ${item.Mensagem.match(/https:\/\/[^\s]+/)?.[0] || 'Link não encontrado'}
 
 *Horário:* ${item['Melhor horário']}
@@ -238,35 +260,66 @@ function processCSV(client, filePath, messageData, technicianType, res) {
 *Descrição:* ${item.Mensagem}
 
 *Login PPPoE:* ${item.Login}
-*Senha PPPoE:* ${item['Senha MD5 PPPoE/Hotspot']}
-              `;
+*Senha PPPoE:* ${item['Senha MD5 PPPoE/Hotspot']}`;
 
-              if (tecnicosTerceirizados.includes(tecnico) || technicianType === 'naoEncaminhadas') {
-                mensagem += `\n*Telefone do Cliente:* ${item['Telefone celular']}`;
-              }
+                  if (tecnicosTerceirizados.includes(tecnico) || technicianType === 'naoEncaminhadas') {
+                    mensagem += `\n*Telefone do Cliente:* ${item['Telefone celular']}`;
+                  }
 
-              if (chatsTecnicos[tecnico]) {
-                if (currentChat !== chatsTecnicos[tecnico]) {
-                  currentChat = chatsTecnicos[tecnico];
-                  orderCounter = 1; // Redefine o contador para 1 ao mudar de chat
+                  if (chatsTecnicos[tecnico]) {
+                    if (currentChat !== chatsTecnicos[tecnico]) {
+                      currentChat = chatsTecnicos[tecnico];
+                      orderCounter = 1;
+                    }
+                    mensagem = `*${orderCounter}° da rota*\n` + mensagem;
+                    await buscarEEnviarMensagem(client, currentChat, mensagem);
+                    orderCounter++;
+                    
+                    // Atualiza o progresso
+                    processedMessages++;
+                    const progress = Math.round((processedMessages / totalMessages) * 100);
+                    
+                    // Envia atualização de progresso para todos os clientes conectados
+                    const progressData = JSON.stringify({ progress });
+                    clients.forEach(client => {
+                      client.write(`data: ${progressData}\n\n`);
+                    });
+                  } else {
+                    console.error(`Chat do técnico "${tecnico}" não encontrado!`);
+                    logMessage(`Erro: Chat do técnico "${tecnico}" não encontrado!`);
+                  }
+                } catch (error) {
+                  console.error('Erro ao enviar mensagem:', error);
+                  logMessage(`Erro ao enviar mensagem: ${error.message}`);
                 }
-                mensagem = `*${orderCounter}° da rota*\n` + mensagem; // Adiciona a ordem de execução na mensagem
-                await buscarEEnviarMensagem(client, currentChat, mensagem);
-                orderCounter++;
-              } else {
-                console.error(`Chat do técnico "${tecnico}" não encontrado!`);
-                logMessage(`Erro: Chat do técnico "${tecnico}" não encontrado!`);
               }
+            } else {
+              console.error(`OS ${os.trim()} não encontrada no arquivo CSV.`);
+              logMessage(`Erro: OS ${os.trim()} não encontrada no arquivo CSV.`);
             }
-          } else {
-            console.error(`OS ${os.trim()} não encontrada no arquivo CSV.`);
-            logMessage(`Erro: OS ${os.trim()} não encontrada no arquivo CSV.`);
           }
         }
+
+        // Notifica conclusão para todos os clientes conectados
+        const completeData = JSON.stringify({ progress: 100, complete: true });
+        clients.forEach(client => {
+          client.write(`data: ${completeData}\n\n`);
+          client.end();
+        });
+
+        logMessage('Processamento concluído com sucesso!');
+
+      } catch (error) {
+        console.error('Erro ao processar mensagens:', error);
+        logMessage(`Erro ao processar mensagens: ${error.message}`);
+        
+        // Notifica erro para todos os clientes conectados
+        const errorData = JSON.stringify({ error: error.message });
+        clients.forEach(client => {
+          client.write(`data: ${errorData}\n\n`);
+          client.end();
+        });
       }
-      res.status(200).send({ message: 'Mensagens enviadas com sucesso!', rotaEnviada: true });
-      logMessage('Mensagens enviadas com sucesso!');
-      console.log('Rota agendada enviada com sucesso!'); // Log após o envio das mensagens
     });
 }
 

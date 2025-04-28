@@ -14,8 +14,8 @@
     </div>
     <ul class="nav-links">
       <li><a href="index.html" class="nav-item active">Enviar Rota</a></li>
-      <li><a href="AlmPlan.html" class="nav-item">Alimentar Planilha</a></li>
       <li><a href="agendamento.html" class="nav-item">Agendar Envio de Rota</a></li>
+      <li><a href="AlmPlan.html" class="nav-item">Alimentar Planilha</a></li>
     </ul>
   </nav>
 
@@ -41,38 +41,83 @@
         <button type="button"  id="clearUploads">Limpar Cache Residual</button>
       </div>
     </form>
+    <div class="progress-container" style="display: none;">
+      <h3>Progresso do Envio</h3>
+      <div class="progress-bar">
+          <div class="progress" id="progressBar"></div>
+      </div>
+      <p id="progressText">0%</p>
+    </div>
   </div>
 
   <script>
-    document.getElementById('messageForm').addEventListener('submit', function(event) {
-      event.preventDefault();
-      const csvFile = document.getElementById('csvFile').files[0];
-      const messageData = document.getElementById('messageData').value;
-      const technicianType = document.getElementById('technicianType').value;
-
-      if (!csvFile) {
-        alert('Por favor, selecione um arquivo CSV.');
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('csvFile', csvFile);
-      formData.append('messageData', messageData);
-      formData.append('technicianType', technicianType);
-
+    function enviarMensagens() {
+      const form = document.getElementById('messageForm');
+      const formData = new FormData(form);
+      
+      // Mostrar a barra de progresso
+      const progressContainer = document.querySelector('.progress-container');
+      const progressBar = document.querySelector('.progress');
+      const progressText = document.querySelector('#progressText');
+      
+      progressContainer.style.display = 'block';
+      progressBar.style.width = '0%';
+      progressText.textContent = '0%';
+    
+      // Primeiro enviar os dados via POST
       fetch('/send-message', {
         method: 'POST',
         body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log('Resposta do servidor:', data);
-        alert('Mensagens enviadas com sucesso!');
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error('Erro ao enviar arquivo');
+        }
+        
+        // Após enviar com sucesso, criar o EventSource para acompanhar o progresso
+        const eventSource = new EventSource('/message-progress');
+        
+        eventSource.onmessage = function(event) {
+          const data = JSON.parse(event.data);
+          
+          if (data.error) {
+            eventSource.close();
+            progressContainer.style.display = 'none';
+            alert(`Erro: ${data.error}`);
+            return;
+          }
+      
+          if (data.progress !== undefined) {
+            progressBar.style.width = `${data.progress}%`;
+            progressText.textContent = `${data.progress}%`;
+            
+            if (data.complete) {
+              eventSource.close();
+              setTimeout(() => {
+                progressContainer.style.display = 'none';
+                alert('Mensagens enviadas com sucesso!');
+              }, 500);
+            }
+          }
+        };
+      
+        eventSource.onerror = function(error) {
+          console.error('Erro na conexão:', error);
+          eventSource.close();
+          progressContainer.style.display = 'none';
+          alert('Erro ao enviar mensagens. Verifique o console para mais detalhes.');
+        };
       })
       .catch(error => {
-        console.error('Erro ao enviar mensagens:', error);
-        alert('Erro ao enviar mensagens.');
+        console.error('Erro:', error);
+        progressContainer.style.display = 'none';
+        alert('Erro ao enviar arquivo: ' + error.message);
       });
+    }
+    
+    // Modificar o event listener do formulário
+    document.getElementById('messageForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      enviarMensagens();
     });
 
     document.getElementById('clearUploads').addEventListener('click', function() {

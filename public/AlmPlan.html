@@ -23,14 +23,15 @@
         <header>
             <h1>Alimentar Planilha</h1>
         </header>
-        <h3>Insira o arquivo CSV</h3>
-        <input type="file" class="csv" id="csvFile" accept=".csv">
-        <h3>Insira o arquivo XLS</h3>
-        <input type="file" id="xlsFile" accept=".xls, .xlsx">
-        <br><br>
-        <div class="layout">
-            <button onclick="processFiles()">Processar</button>
-            <button ><a id="downloadLink">Baixar Arquivo</a></button>
+        <div class="form-container">
+            <h3>Insira o arquivo CSV</h3>
+            <input type="file" class="csv" id="csvFile" accept=".csv">
+            <h3>Insira o arquivo XLS</h3>
+            <input type="file" id="xlsFile" accept=".xls, .xlsx">
+            <div class="layout">
+                <button onclick="processFiles()">Processar</button>
+                <button><a id="downloadLink">Baixar Arquivo</a></button>
+            </div>
         </div>
     </div>
     <script>

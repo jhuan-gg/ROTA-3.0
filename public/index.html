@@ -8,12 +8,17 @@
   <link rel="icon" href="zut.png" type="image/png">
 </head>
 <body>
-  <div class="logo">
-    <picture>
-      <source srcset="./zuttel3.png" media="(prefers-color-scheme: light)">
-      <img src="./zuttel.png" alt="Logo Zuttel">
-    </picture>
-  </div>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <img src="./zuttel.png" alt="Logo Zuttel" class="nav-logo">
+    </div>
+    <ul class="nav-links">
+      <li><a href="index.html" class="nav-item active">Enviar Rota</a></li>
+      <li><a href="AlmPlan.html" class="nav-item">Alimentar Planilha</a></li>
+      <li><a href="agendamento.html" class="nav-item">Agendar Envio de Rota</a></li>
+    </ul>
+  </nav>
+
   <div class="container">
     <h1>Enviar Rota</h1>
     <form id="messageForm">
@@ -32,10 +37,8 @@
       </select>
       <br>
       <div class="agendamento">
-        <button type="submit" class="tam">Enviar</button>
-        <button type="button" class="tam" id="clearUploads">Limpar Cache Residual</button>
-        <button type="button" class="color tam" onclick="window.location.href='agendamento.html'">Agendar Envio de Rota</button>
-        <button type="button" class="button tam" onclick="window.location.href='AlmPlan.html'">Alimentar Planilha</button>
+        <button type="submit" >Enviar</button>
+        <button type="button"  id="clearUploads">Limpar Cache Residual</button>
       </div>
     </form>
   </div>

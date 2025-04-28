@@ -8,12 +8,17 @@
     <link rel="icon" href="zut.png" type="image/png">
 </head>
 <body>
-    <div class="logo1">
-        <picture>
-            <source srcset="./zuttel3.png" media="(prefers-color-scheme: light)">
-            <img src="./zuttel.png" alt="Logo Zuttel">
-        </picture>
-    </div>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <img src="./zuttel.png" alt="Logo Zuttel" class="nav-logo">
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html" class="nav-item">Enviar Rota</a></li>
+            <li><a href="AlmPlan.html" class="nav-item">Alimentar Planilha</a></li>
+            <li><a href="agendamento.html" class="nav-item active">Agendar Envio de Rota</a></li>
+        </ul>
+    </nav>
+
     <div class="container">
         <h1>Agendar Envio de Rota</h1>
         <form id="scheduleForm">
@@ -48,7 +53,6 @@
             <div class="agen">
                 <button type="submit">Salvar Configuração</button>
                 <button type="button" id="clearConfig">Limpar Configuração</button>
-                <button type="button" class="color" onclick="window.location.href='index.html'">Envio de Rota agora</button>
                 <button type="button" id="clearUploads">Limpar Cache Residual</button>
             </div>
         </form>

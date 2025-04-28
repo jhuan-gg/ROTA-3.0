@@ -8,12 +8,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-    <div class="logo">
-        <picture>
-          <source srcset="./zuttel3.png" media="(prefers-color-scheme: light)">
-          <img src="./zuttel.png" alt="Logo Zuttel">
-        </picture>
-      </div>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <img src="./zuttel.png" alt="Logo Zuttel" class="nav-logo">
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html" class="nav-item">Enviar Rota</a></li>
+            <li><a href="AlmPlan.html" class="nav-item active">Alimentar Planilha</a></li>
+            <li><a href="agendamento.html" class="nav-item">Agendar Envio de Rota</a></li>
+        </ul>
+    </nav>
+
     <div class="container">
         <header>
             <h1>Alimentar Planilha</h1>
@@ -24,9 +29,8 @@
         <input type="file" id="xlsFile" accept=".xls, .xlsx">
         <br><br>
         <div class="layout">
-            <button class="tam" onclick="processFiles()">Processar</button>
-            <button class="tam"><a id="downloadLink">Baixar Arquivo</a></button>
-            <button class="color tam" onclick="window.location.href='index.html'">Voltar</button>
+            <button onclick="processFiles()">Processar</button>
+            <button ><a id="downloadLink">Baixar Arquivo</a></button>
         </div>
     </div>
     <script>

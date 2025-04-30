@@ -234,7 +234,10 @@
             // Para cada linha da tabela
             linhas.forEach(linha => {
                 const celulas = linha.querySelectorAll('td');
-                const valores = Array.from(celulas).map(celula => celula.textContent.trim());
+                // Converte NodeList para Array e remove a última célula (Metragem Estimada)
+                const valores = Array.from(celulas)
+                    .slice(0, -1) // Remove o último elemento (coluna Metragem Estimada)
+                    .map(celula => celula.textContent.trim());
                 conteudo.push(valores.join('\t'));
             });
 

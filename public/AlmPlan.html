@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agendar Envio de Rota</title>
+    <title>Alimentar planilha</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="zut.png" type="image/png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <nav class="navbar">
@@ -98,23 +99,69 @@
                 'Corupá': 'COR',
                 'Corupa': 'COR'
             };
-             // Criar data atual formatada (DD/MM/YYYY)
-    const hoje = new Date();
-    const dataFormatada = hoje.toLocaleDateString('pt-BR');
-
 
             const xlsDataMap = new Map(xlsData.map(row => [row.ID, row]));
+
+            function extrairMetragem(mensagem) {
+                if (!mensagem) return '';
+                
+                // Procura por "METRAGEM APROX DA INSTALAÇÃO:" e extrai o número que vem depois
+                const regex = /METRAGEM APROX DA INSTALAÇÃO:?\s*(\d+)\s*(mts?|metros?)?/i;
+                const match = mensagem.match(regex);
+                
+                if (match && match[1]) {
+                    return match[1]; // Retorna apenas o número
+                }
+                
+                // Caso não encontre no formato padrão, procura por números seguidos de mts/metros
+                const regexSimples = /(\d+)\s*(mts?|metros?)/i;
+                const matchSimples = mensagem.match(regexSimples);
+                
+                return matchSimples ? matchSimples[1] : '';
+            }
+
+            // Função para converter número do Excel para data
+            function excelDateToJSDate(excelDate) {
+                const date = new Date((excelDate - 25569) * 86400 * 1000);
+                const dia = date.getDate().toString().padStart(2, '0');
+                const mes = (date.getMonth() + 1).toString().padStart(2, '0');
+                const ano = date.getFullYear();
+                return `${dia}/${mes}/${ano}`;
+            }
 
             return csvData.map(row => {
                 const xlsRow = xlsDataMap.get(row['ID O.S.']) || {};
                 const formattedCity = xlsRow.Cidade ? `${xlsRow.Bairro} - ${cityMap[xlsRow.Cidade] || xlsRow.Cidade}` : '';
+                
+                // Extrair metragem da mensagem
+                const metragem = extrairMetragem(xlsRow.Mensagem);
+                
+                // Formatando a data do agendamento corretamente
+                let agendamento = '';
+                if (xlsRow.Agendamento) {
+                    try {
+                        // Verifica se é um número (formato Excel)
+                        if (typeof xlsRow.Agendamento === 'number') {
+                            agendamento = excelDateToJSDate(xlsRow.Agendamento);
+                        } else {
+                            // Se não for número, tenta tratar como string normal
+                            const dataCompleta = xlsRow.Agendamento.toString();
+                            const [data] = dataCompleta.split(' ');
+                            agendamento = data;
+                        }
+                    } catch (error) {
+                        agendamento = xlsRow.Agendamento;
+                    }
+                }
+
                 return {
                     'ID CLIENTE': row['ID CLIENTE'],
                     'ID OS': row['ID O.S.'],
-                    'AGENDAMENTO': dataFormatada, 
+                    'AGENDAMENTO': agendamento,
                     'Cidade Reformulada': formattedCity,
                     'Assunto': xlsRow.Assunto || '',
-                    'Horário': xlsRow['Melhor horário'] || ''
+                    'Horário': xlsRow['Melhor horário'] || '',
+                    'Metragem Estimada': metragem ? `${metragem}m` : ''
                 };
             });
         }
@@ -138,7 +185,15 @@
             
             // Cabeçalho
             headers.forEach(header => {
-                html += `<th style="border: 1px solid #ddd; padding: 12px 8px; background-color: #4a4a4a; color: white;">${header}</th>`;
+                // Definindo alinhamento específico para cada coluna
+                let align = 'center'; // Alinhamento padrão
+                if (header === 'ID CLIENTE' || header === 'ID OS') align = 'center';
+                if (header === 'AGENDAMENTO') align = 'center';
+                if (header === 'Cidade Reformulada' || header === 'Assunto') align = 'left';
+                if (header === 'Horário') align = 'center';
+                if (header === 'Metragem Estimada') align = 'center';
+
+                html += `<th style="border: 1px solid #ddd; padding: 12px 8px; background-color: #4a4a4a; color: white; text-align: ${align};">${header}</th>`;
             });
             
             html += '</tr></thead><tbody>';
@@ -147,7 +202,15 @@
             data.forEach((row, index) => {
                 html += `<tr style="background-color: ${index % 2 === 0 ? '#f0f0f0' : '#ffffff'}">`;
                 headers.forEach(header => {
-                    html += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left; color: #000000;">${row[header] || ''}</td>`;
+                    // Aplicando o mesmo alinhamento das colunas para as células
+                    let align = 'center'; // Alinhamento padrão
+                    if (header === 'ID CLIENTE' || header === 'ID OS') align = 'center';
+                    if (header === 'AGENDAMENTO') align = 'center';
+                    if (header === 'Cidade Reformulada' || header === 'Assunto') align = 'left';
+                    if (header === 'Horário') align = 'center';
+                    if (header === 'Metragem Estimada') align = 'center';
+
+                    html += `<td style="border: 1px solid #ddd; padding: 8px; text-align: ${align}; color: #000000; white-space: nowrap;">${row[header] || ''}</td>`;
                 });
                 html += '</tr>';
             });
@@ -164,25 +227,59 @@
                 return;
             }
 
-            let conteudo = '';
+            // Pega apenas as linhas do corpo da tabela (tbody)
             const linhas = tabela.querySelectorAll('tbody tr');
+            let conteudo = [];
             
+            // Para cada linha da tabela
             linhas.forEach(linha => {
                 const celulas = linha.querySelectorAll('td');
                 const valores = Array.from(celulas).map(celula => celula.textContent.trim());
-                conteudo += valores.join('\t') + '\n';
+                conteudo.push(valores.join('\t'));
             });
 
-            navigator.clipboard.writeText(conteudo).then(() => {
-                const btnCopiar = document.getElementById('btnCopiar');
+            // Método fallback para navegadores que não suportam clipboard API
+            if (!navigator.clipboard) {
+                const textArea = document.createElement('textarea');
+                textArea.value = conteudo.join('\n');
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.select();
+
+                try {
+                    document.execCommand('copy');
+                    atualizarBotao(true);
+                } catch (err) {
+                    console.error('Fallback: Erro ao copiar texto: ', err);
+                    alert('Erro ao copiar o conteúdo. Por favor, tente novamente.');
+                }
+
+                document.body.removeChild(textArea);
+                return;
+            }
+
+            // Usando a API moderna do clipboard
+            navigator.clipboard.writeText(conteudo.join('\n'))
+                .then(() => atualizarBotao(true))
+                .catch(err => {
+                    console.error('Erro ao copiar: ', err);
+                    alert('Erro ao copiar o conteúdo. Por favor, tente novamente.');
+                });
+        }
+
+        // Função auxiliar para atualizar o visual do botão
+        function atualizarBotao(sucesso) {
+            const btnCopiar = document.getElementById('btnCopiar');
+            if (sucesso) {
                 btnCopiar.textContent = 'Copiado!';
+                btnCopiar.style.backgroundColor = '#45a049';
+                
                 setTimeout(() => {
                     btnCopiar.textContent = 'Copiar Conteúdo';
+                    btnCopiar.style.backgroundColor = '#4CAF50';
                 }, 2000);
-            }).catch(err => {
-                console.error('Erro ao copiar: ', err);
-                alert('Erro ao copiar o conteúdo');
-            });
+            }
         }
     </script>
 </body>

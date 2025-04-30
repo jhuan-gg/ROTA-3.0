@@ -31,8 +31,10 @@
             <div class="layout">
                 <button onclick="processFiles()">Processar</button>
                 <button><a id="downloadLink">Baixar Arquivo</a></button>
+                <button onclick="copiarConteudo()" id="btnCopiar">Copiar Conteúdo</button>
             </div>
         </div>
+        <div id="tableContainer" style="margin-top: 20px; max-height: 500px; overflow-y: auto; overflow-x: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px;"></div>
     </div>
     <script>
         function processFiles() {
@@ -56,6 +58,12 @@
                         const xlsDataParsed = XLSX.utils.sheet_to_json(xlsSheet);
 
                         const mergedData = mergeData(csvDataParsed, xlsDataParsed);
+                        
+                        // Criar e mostrar a tabela
+                        const tableContainer = document.getElementById('tableContainer');
+                        tableContainer.innerHTML = createTable(mergedData);
+                        
+                        // Continua com a criação do arquivo para download
                         const wb = XLSX.utils.book_new();
                         const ws = XLSX.utils.json_to_sheet(mergedData);
                         XLSX.utils.book_append_sheet(wb, ws, "Dados Processados");
@@ -81,7 +89,7 @@
 
         function mergeData(csvData, xlsData) {
             const cityMap = {
-                'Jaraguá do Sul': 'JGUA',
+                'Jaraguá do Sul': 'JGS',
                 'Araquari': 'ARQ',
                 'Guaramirim': 'GRI',
                 'Schroeder': 'SCH',
@@ -90,16 +98,20 @@
                 'Corupá': 'COR',
                 'Corupa': 'COR'
             };
+             // Criar data atual formatada (DD/MM/YYYY)
+    const hoje = new Date();
+    const dataFormatada = hoje.toLocaleDateString('pt-BR');
+
 
             const xlsDataMap = new Map(xlsData.map(row => [row.ID, row]));
 
             return csvData.map(row => {
                 const xlsRow = xlsDataMap.get(row['ID O.S.']) || {};
-                const formattedCity = xlsRow.Cidade ? `${xlsRow.Bairro} – ${cityMap[xlsRow.Cidade] || xlsRow.Cidade}` : '';
+                const formattedCity = xlsRow.Cidade ? `${xlsRow.Bairro} - ${cityMap[xlsRow.Cidade] || xlsRow.Cidade}` : '';
                 return {
                     'ID CLIENTE': row['ID CLIENTE'],
                     'ID OS': row['ID O.S.'],
-                    'AGENDAMENTO': '',  // Coluna AGENDAMENTO retornando em branco
+                    'AGENDAMENTO': dataFormatada, 
                     'Cidade Reformulada': formattedCity,
                     'Assunto': xlsRow.Assunto || '',
                     'Horário': xlsRow['Melhor horário'] || ''
@@ -112,6 +124,65 @@
             const view = new Uint8Array(buf);
             for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
             return buf;
+        }
+
+        function createTable(data) {
+            if (data.length === 0) return '';
+            
+            const headers = Object.keys(data[0]);
+            let html = `
+                <table style="border-collapse: collapse; width: 100%; font-size: 14px; color: #333;">
+                    <thead>
+                        <tr style="position: sticky; top: 0; background: #4a4a4a;">
+            `;
+            
+            // Cabeçalho
+            headers.forEach(header => {
+                html += `<th style="border: 1px solid #ddd; padding: 12px 8px; background-color: #4a4a4a; color: white;">${header}</th>`;
+            });
+            
+            html += '</tr></thead><tbody>';
+            
+            // Corpo da tabela
+            data.forEach((row, index) => {
+                html += `<tr style="background-color: ${index % 2 === 0 ? '#f0f0f0' : '#ffffff'}">`;
+                headers.forEach(header => {
+                    html += `<td style="border: 1px solid #ddd; padding: 8px; text-align: left; color: #000000;">${row[header] || ''}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            
+            return html;
+        }
+
+        function copiarConteudo() {
+            const tabela = document.querySelector('table');
+            if (!tabela) {
+                alert('Processe os arquivos primeiro!');
+                return;
+            }
+
+            let conteudo = '';
+            const linhas = tabela.querySelectorAll('tbody tr');
+            
+            linhas.forEach(linha => {
+                const celulas = linha.querySelectorAll('td');
+                const valores = Array.from(celulas).map(celula => celula.textContent.trim());
+                conteudo += valores.join('\t') + '\n';
+            });
+
+            navigator.clipboard.writeText(conteudo).then(() => {
+                const btnCopiar = document.getElementById('btnCopiar');
+                btnCopiar.textContent = 'Copiado!';
+                setTimeout(() => {
+                    btnCopiar.textContent = 'Copiar Conteúdo';
+                }, 2000);
+            }).catch(err => {
+                console.error('Erro ao copiar: ', err);
+                alert('Erro ao copiar o conteúdo');
+            });
         }
     </script>
 </body>

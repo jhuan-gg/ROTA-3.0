@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enviar Encaixe</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="zut.png" type="image/png">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <img src="./zuttel.png" alt="Logo Zuttel" class="nav-logo">
+        </div>
+        <ul class="nav-links">
+            <li><a href="index.html" class="nav-item">Enviar Rota</a></li>
+            <li><a href="agendamento.html" class="nav-item">Agendar Envio de Rota</a></li>
+            <li><a href="AlmPlan.html" class="nav-item">Alimentar Planilha</a></li>
+            <li><a href="encaixe.html" class="nav-item active">Enviar Encaixe</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>Enviar Encaixe</h1>
+        <form id="encaixeForm">
+            <label for="csvFile">Selecionar Arquivo CSV:</label>
+            <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
+            <br>
+            <label for="messageData">IDs e OS (Ordem de Serviço):</label>
+            <textarea 
+                id="messageData" 
+                name="messageData" 
+                rows="10" 
+                cols="50" 
+                required 
+                placeholder="Digite ou cole aqui os IDs/OS&#10;Exemplo:&#10;123456&#10;234567"
+            ></textarea>
+            <br>
+            <label for="technicianType">Selecione o Técnico:</label>
+            <select id="technicianType" name="technicianType" required class="select-tecnico">
+                <optgroup label="Técnicos Terceirizados">
+                    <option value="Téc Terceirizado - William Giovane Ribas de Lima">William Giovane</option>
+                    <option value="Téc Terceirizado - Lucimar Moreira">Lucimar Moreira</option>
+                    <option value="Téc Terceirizado HIF - Lucas Thiago Alves">Lucas Thiago (HIF)</option>
+                    <option value="Téc Terceirizado - José Mário Souza Suzarte Júnior">José Mário</option>
+                    <option value="Téc Terceirizado - Odair José Vieira">Odair José</option>
+                    <option value="Téc Terceirizado WENDEL - Alisson Santos de Cristo">Alisson (Wendel)</option>
+                    <option value="Téc Terceirizado HIF - Thiago Fonseca">Thiago (HIF)</option>
+                    <option value="Téc Terceirizado EZEQUIEL - Ezequiel dos Santos">Ezequiel</option>
+                    <option value="Téc Terceirizado - Cleverson Gregorio dos Santos">Cleverson</option>
+                    <option value="Téc Terceirizado WENDEL - José Carlos de Castilho">José Carlos (Wendel)</option>
+                </optgroup>
+                <optgroup label="Técnicos Internos">
+                    <option value="Thiago Lima de Sousa Boita">Thiago Boita</option>
+                    <option value="Daniel Santos Romualdo">Daniel Santos</option>
+                    <option value="Francisco Leandro Ferreira Lima">Francisco Leandro</option>
+                    <option value="France Wilton de Oliveira Rodrigues">France Wilton</option>
+                    <option value="Nelson dos Santos Prieto">Nelson Prieto</option>
+                    <option value="Estevão Pacheco">Estevão Pacheco</option>
+                    <option value="Jefferson da Graça">Jefferson da Graça</option>
+                    <option value="Kaique Cassiano Souza">Kaique Cassiano</option>
+                    <option value="Andressa Pereira Fernandes">Andressa Pereira</option>
+                    <option value="Saulo Venancio Carneiro da Cunha">Saulo Venancio</option>
+                </optgroup>
+                <optgroup label="Não Encaminhadas">
+                    <option value="Técnico Zuttel">OS's não encaminhadas</option>
+                </optgroup>
+            </select>
+            <br>
+            <div class="agendamento">
+                <button type="submit">Enviar</button>
+                <button type="button" id="clearUploads">Limpar Cache Residual</button>
+            </div>
+        </form>
+        <div class="progress-container" style="display: none;">
+            <h3>Progresso do Envio</h3>
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            <p id="progressText">0%</p>
+        </div>
+    </div>
+
+    <style>
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .error-message {
+            color: #ff0000;
+            font-size: 12px;
+            display: block;
+            margin-top: 5px;
+        }
+
+        input.invalid {
+            border: 1px solid #ff0000;
+        }
+
+        input.valid {
+            border: 1px solid #4CAF50;
+        }
+    </style>
+
+    <script>
+        function validateInput(input) {
+            const errorSpan = document.getElementById('osError');
+            const value = input.value;
+            
+            if (value.length === 0) {
+                input.classList.remove('valid', 'invalid');
+                errorSpan.textContent = '';
+            } else if (!/^\d+$/.test(value)) {
+                input.classList.add('invalid');
+                input.classList.remove('valid');
+                errorSpan.textContent = 'Digite apenas números';
+            } else if (value.length > 6) {
+                input.classList.add('invalid');
+                input.classList.remove('valid');
+                errorSpan.textContent = 'Máximo de 6 dígitos';
+            } else {
+                input.classList.add('valid');
+                input.classList.remove('invalid');
+                errorSpan.textContent = '';
+            }
+        }
+
+        function enviarEncaixe() {
+            const form = document.getElementById('encaixeForm');
+            const formData = new FormData(form);
+            const messageData = formData.get('messageData');
+            const technicianType = formData.get('technicianType');
+            const csvFile = document.getElementById('csvFile').files[0];
+            
+            if (!csvFile || !messageData || !technicianType) {
+                alert('Por favor, preencha todos os campos.');
+                return;
+            }
+            
+            const progressContainer = document.querySelector('.progress-container');
+            const progressBar = document.querySelector('.progress');
+            const progressText = document.querySelector('#progressText');
+            
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressText.textContent = '0%';
+
+            // Primeiro enviar os dados via POST
+            fetch('/send-encaixe', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao enviar arquivo');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Após enviar com sucesso, criar o EventSource para acompanhar o progresso
+                const eventSource = new EventSource('/message-progress');
+                
+                eventSource.onmessage = function(event) {
+                    const progressData = JSON.parse(event.data);
+                    
+                    if (progressData.error) {
+                        eventSource.close();
+                        progressContainer.style.display = 'none';
+                        alert(`Erro: ${progressData.error}`);
+                        return;
+                    }
+                
+                    if (progressData.progress !== undefined) {
+                        progressBar.style.width = `${progressData.progress}%`;
+                        progressText.textContent = `${progressData.progress}%`;
+                        
+                        if (progressData.complete) {
+                            eventSource.close();
+                            setTimeout(() => {
+                                progressContainer.style.display = 'none';
+                                alert('Encaixe enviado com sucesso!');
+                                form.reset();
+                            }, 500);
+                        }
+                    }
+                };
+            
+                eventSource.onerror = function(error) {
+                    console.error('Erro na conexão:', error);
+                    eventSource.close();
+                    progressContainer.style.display = 'none';
+                    alert('Erro ao enviar encaixe. Verifique o console para mais detalhes.');
+                };
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                progressContainer.style.display = 'none';
+                alert('Erro ao enviar encaixe: ' + error.message);
+            });
+        }
+        
+        document.getElementById('encaixeForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            enviarEncaixe();
+        });
+
+        document.getElementById('clearUploads').addEventListener('click', function() {
+            fetch('/clear-uploads', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Resposta do servidor:', data);
+                alert('Cache residual limpo com sucesso!');
+            })
+            .catch(error => {
+                console.error('Erro ao limpar cache residual:', error);
+                alert('Erro ao limpar cache residual.');
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const textarea = document.querySelector('textarea');
+            
+            textarea.addEventListener('paste', function(e) {
+                e.preventDefault();
+                
+                let text = (e.originalEvent || e).clipboardData.getData('text/plain');
+                
+                // Formata o texto para garantir o formato ID[tab]OS
+                text = text.split('\n')
+                    .map(line => {
+                        const numbers = line.trim().split(/\s+/);
+                        if (numbers.length >= 2) {
+                            return numbers[0] + '\t' + numbers[1];
+                        }
+                        return '';
+                    })
+                    .filter(line => line)
+                    .join('\n');
+                
+                // Insere o texto formatado
+                this.value = text;
+            });
+        });
+    </script>
+</body>
+</html>

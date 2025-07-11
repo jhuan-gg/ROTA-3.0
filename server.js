@@ -113,6 +113,32 @@ function start(client) {
     }
   });
 
+  // Rota para enviar encaixe
+app.post('/send-encaixe', upload.single('csvFile'), async (req, res) => {
+    try {
+        const { osNumber, technicianType } = req.body;
+        
+        if (!req.file) {
+            return res.status(400).json({ error: 'Arquivo CSV não encontrado' });
+        }
+        
+        if (!osNumber || !technicianType) {
+            return res.status(400).json({ error: 'Número da OS ou tipo de técnico não fornecido' });
+        }
+
+        // Inicializa o progresso
+        currentProgress = 0;
+        
+        // Processa o encaixe de forma assíncrona
+        processEncaixe(client, req.file.path, osNumber, technicianType);
+        
+        res.json({ message: 'Processamento iniciado' });
+    } catch (error) {
+        console.error('Erro ao processar encaixe:', error);
+        res.status(500).json({ error: 'Erro ao processar encaixe' });
+    }
+});
+
   app.get('/message-progress', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -192,6 +218,19 @@ function start(client) {
       logMessage('Cache residual limpo com sucesso!');
     });
   });
+
+  app.post('/send-encaixe', upload.single('csvFile'), (req, res) => {
+    const { osNumber, technicianType } = req.body;
+    if (req.file && osNumber && technicianType) {
+        currentProgress = 0;
+        // Criar uma mensagem simples sem numeração de rota
+        processEncaixe(client, req.file.path, osNumber, technicianType);
+        res.status(200).send({ message: 'Processamento iniciado' });
+    } else {
+        res.status(400).send({ error: 'Arquivo CSV, número da OS ou tipo de técnico não encontrados' });
+        logMessage('Erro: Arquivo CSV, número da OS ou tipo de técnico não encontrados');
+    }
+});
 }
 
 function scheduleMessages(client, config) {
@@ -363,6 +402,73 @@ async function enviarMensagens(client, chat, mensagem) {
     console.error(`Erro ao enviar mensagem para ${chat}:`, error);
     logMessage(`Erro ao enviar mensagem para ${chat}: ${error.message}`);
   }
+}
+
+// Função para processar o encaixe
+async function processEncaixe(client, filePath, osNumber, technicianName) {
+    const results = [];
+    fs.createReadStream(filePath)
+        .pipe(csv({ separator: ';' }))
+        .on('data', (data) => results.push(data))
+        .on('end', async () => {
+            try {
+                const item = results.find(row => row.ID === osNumber.trim());
+                if (item) {
+                    const tecnico = technicianName.trim(); // Usando o nome do técnico selecionado
+                    try {
+                        const nomeCliente = item.Cliente.split(' - ')[1] || item.Cliente;
+                        let mensagem = `
+*OS:* ${item.ID}
+*Cliente:* ${item.ID} - ${nomeCliente}
+*Endereço:* ${item.Endereço} *Bairro:* ${item.Bairro} *Cidade:* ${item.Cidade}
+*Bloco:* ${item.Bloco} *Apto:* ${item.Apartamento}
+*Referência:* ${item.Referência}
+*Loc:* ${item.Mensagem.match(/https:\/\/[^\s]+/)?.[0] || 'Link não encontrado'}
+
+*Horário:* ${item['Melhor horário']}
+
+*Assunto:* ${item.Assunto}
+
+*Descrição:* ${item.Mensagem}
+
+*Login PPPoE:* ${item.Login}
+*Senha PPPoE:* ${item['Senha MD5 PPPoE/Hotspot']}`;
+
+                        if (tecnicosTerceirizados.includes(tecnico) || tecnico === 'Técnico Zuttel') {
+                            mensagem += `\n*Telefone do Cliente:* ${item['Telefone celular']}`;
+                        }
+
+                        if (chatsTecnicos[tecnico]) {
+                            await buscarEEnviarMensagem(client, chatsTecnicos[tecnico], mensagem);
+                            
+                            // Notifica conclusão
+                            const completeData = JSON.stringify({ progress: 100, complete: true });
+                            clients.forEach(client => {
+                                client.write(`data: ${completeData}\n\n`);
+                                client.end();
+                            });
+                        } else {
+                            throw new Error(`Chat do técnico "${tecnico}" não encontrado!`);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao enviar mensagem:', error);
+                        logMessage(`Erro ao enviar mensagem: ${error.message}`);
+                        throw error;
+                    }
+                } else {
+                    throw new Error(`OS ${osNumber.trim()} não encontrada no arquivo CSV.`);
+                }
+            } catch (error) {
+                console.error('Erro ao processar encaixe:', error);
+                logMessage(`Erro ao processar encaixe: ${error.message}`);
+                
+                const errorData = JSON.stringify({ error: error.message });
+                clients.forEach(client => {
+                    client.write(`data: ${errorData}\n\n`);
+                    client.end();
+                });
+            }
+        });
 }
 
 app.listen(port, '0.0.0.0', () => {

@@ -1,5 +1,5 @@
 const express = require('express');
-const venom = require('venom-bot');
+const wppconnect = require('@wppconnect-team/wppconnect');
 const multer = require('multer');
 const csv = require('csv-parser');
 const fs = require('fs');
@@ -7,6 +7,11 @@ const schedule = require('node-schedule');
 const path = require('path');
 const { format } = require('date-fns');
 const { zonedTimeToUtc, format: formatTz } = require('date-fns-tz'); 
+const { remove } = require('diacritics'); // instale com: npm install diacritics
+
+let globalClient = null; // ✅ Variável global para armazenar o client
+
+
 const app = express();
 const port = 3000;
 
@@ -14,6 +19,27 @@ const upload = multer({ dest: 'uploads/' });
 
 app.use(express.json());
 app.use(express.static('public'));
+
+let cachedChats = []; // variável global que guarda os chats
+let cacheInterval = null;
+
+async function updateChatsCache(client) {
+  try {
+    const state = await client.getConnectionState();
+    if (state === 'CONNECTED') {
+      cachedChats = await client.getAllChats();
+      console.log(`✅ Cache de chats atualizado: ${cachedChats.length} chats carregados`);
+      logMessage(`Cache de chats atualizado: ${cachedChats.length} chats carregados`);
+    } else {
+      console.warn(`⚠️ Não foi possível atualizar cache: estado = ${state}`);
+      logMessage(`Aviso: não foi possível atualizar cache: estado = ${state}`);
+    }
+  } catch (error) {
+    console.error('Erro ao atualizar cache de chats:', error);
+    logMessage(`Erro ao atualizar cache de chats: ${error.message}`);
+  }
+}
+
 
 const chatsTecnicos = {
     'Téc Terceirizado - William Giovane Ribas de Lima': 'Atendimentos William',
@@ -71,73 +97,56 @@ function logMessage(message) {
     fs.appendFileSync(logFile, logEntry);
 }
 
-venom.create(
-    'sessionName',
-    (base64Qr, asciiQR, attempts, urlCode) => {
-        console.log(asciiQR);
-        logMessage(`QR Code gerado: ${asciiQR}`);
-    },
-    (statusSession, session) => {
-        console.log('Status Session: ', statusSession);
-        console.log('Session name: ', session);
-        logMessage(`Status da sessão: ${statusSession}, Nome da sessão: ${session}`);
-    },
-    {
-        headless: true,
-        devtools: false,
-        useChrome: true,
-        debug: false,
-        logQR: false,
-        browserArgs: ['--no-sandbox'],
-        refreshQR: 15000,
-        autoClose: 60000,
-        disableSpins: true,
-    }
-).then((client) => start(client))
-  .catch((error) => {
-      console.error('Erro ao iniciar o Venom:', error);
-      logMessage(`Erro ao iniciar o Venom: ${error.message}`);
-  });
-
-function start(client) {
-  app.post('/send-message', upload.single('csvFile'), (req, res) => {
-    const { messageData, technicianType } = req.body;
-    if (req.file && messageData && technicianType) {
-      currentProgress = 0;
-      // Inicia o processamento em background
-      processCSV(client, req.file.path, messageData, technicianType);
-      res.status(200).send({ message: 'Processamento iniciado' });
-    } else {
-      res.status(400).send({ error: 'Arquivo CSV, dados de mensagem ou tipo de técnico não encontrados' });
-      logMessage('Erro: Arquivo CSV, dados de mensagem ou tipo de técnico não encontrados');
-    }
-  });
-
-  // Rota para enviar encaixe
-app.post('/send-encaixe', upload.single('csvFile'), async (req, res) => {
-    try {
-        const { osNumber, technicianType } = req.body;
-        
-        if (!req.file) {
-            return res.status(400).json({ error: 'Arquivo CSV não encontrado' });
-        }
-        
-        if (!osNumber || !technicianType) {
-            return res.status(400).json({ error: 'Número da OS ou tipo de técnico não fornecido' });
-        }
-
-        // Inicializa o progresso
-        currentProgress = 0;
-        
-        // Processa o encaixe de forma assíncrona
-        processEncaixe(client, req.file.path, osNumber, technicianType);
-        
-        res.json({ message: 'Processamento iniciado' });
-    } catch (error) {
-        console.error('Erro ao processar encaixe:', error);
-        res.status(500).json({ error: 'Erro ao processar encaixe' });
-    }
+wppconnect.create({
+  session: 'sessionName',
+  headless: false,
+  useChrome: true,
+  browserArgs: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-zygote',
+    '--disable-gpu'
+  ],
+  catchQR: (base64Qr, asciiQR, attempts, urlCode) => {
+    console.log(asciiQR);
+    logMessage(`QR Code gerado: ${asciiQR}`);
+  },
+  statusFind: (statusSession, session) => {
+    console.log('Status Session:', statusSession);
+    console.log('Session name:', session);
+    logMessage(`Status da sessão: ${statusSession}, Nome da sessão: ${session}`);
+  }
+})
+.then((client) => start(client))
+.catch((error) => {
+  console.error('Erro ao iniciar o WPPConnect:', error);
+  logMessage(`Erro ao iniciar o WPPConnect: ${error.message}`);
 });
+
+
+// 🟢 FUNÇÃO PRINCIPAL
+async function start(client) {
+  globalClient = client; // ✅ guarda o client para usar em outras rotas
+
+  console.log('Client iniciado, aguardando conexão...');
+
+  client.onStateChange(async (state) => {
+    console.log('🔄 Estado atual do WhatsApp:', state);
+    logMessage(`Estado atual do WhatsApp: ${state}`);
+
+    if (state === 'CONNECTED') {
+      console.log('✅ Conexão confirmada, atualizando cache de chats...');
+      await updateChatsCache(client);
+
+      if (!cacheInterval) {
+        cacheInterval = setInterval(() => updateChatsCache(client), 5 * 60 * 1000);
+      }
+    }
+  });
+}
+
 
   app.get('/message-progress', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
@@ -231,7 +240,31 @@ app.post('/send-encaixe', upload.single('csvFile'), async (req, res) => {
         logMessage('Erro: Arquivo CSV, número da OS ou tipo de técnico não encontrados');
     }
 });
-}
+
+app.post('/send-message', upload.single('csvFile'), async (req, res) => {
+  try {
+    const { messageData, technicianType } = req.body;
+
+    if (!req.file || !messageData || !technicianType) {
+      return res.status(400).json({ error: 'Arquivo CSV, messageData e technicianType são obrigatórios' });
+    }
+
+    if (!globalClient) {
+      return res.status(500).json({ error: 'Cliente do WhatsApp não inicializado ainda' });
+    }
+
+    // ✅ Agora processa usando a função que já existe para CSV
+    processCSV(globalClient, req.file.path, messageData, technicianType);
+
+    res.status(200).json({ message: 'Processamento iniciado com sucesso!' });
+
+  } catch (error) {
+    console.error('Erro ao enviar mensagens:', error);
+    res.status(500).json({ error: 'Erro ao enviar mensagens' });
+  }
+});
+
+
 
 function scheduleMessages(client, config) {
   const [hour, minute] = config.scheduleTime.split(':').map(Number);
@@ -252,14 +285,14 @@ function scheduleMessages(client, config) {
 }
 
 // Modifique a função processCSV para:
-function processCSV(client, filePath, messageData, technicianType) {
+async function processCSV(client, filePath, messageData, technicianType) {
   const results = [];
   let totalMessages = 0;
   let processedMessages = 0;
   let currentChat = null;
   let orderCounter = 1;
 
-  // Primeiro, contamos o total de mensagens
+  // Conta quantas linhas tem para calcular progresso
   messageData.split('\n').forEach(line => {
     const [id, os] = line.split('\t');
     if (id && os) totalMessages++;
@@ -270,21 +303,45 @@ function processCSV(client, filePath, messageData, technicianType) {
     .on('data', (data) => results.push(data))
     .on('end', async () => {
       try {
+        const connectionState = await client.getConnectionState();
+        if (connectionState !== 'CONNECTED') {
+          logMessage(`Cliente não está conectado ao WhatsApp (estado: ${connectionState})`);
+          return;
+        }
+
         for (const line of messageData.split('\n')) {
           const [id, os] = line.split('\t');
-          if (id && os) {
-            const item = results.find(row => row.ID === os.trim());
-            if (item) {
-              const tecnico = item.Colaborador.trim();
-              if (
-                (technicianType === 'terceirizados' && tecnicosTerceirizados.includes(tecnico)) ||
-                (technicianType === 'internos' && !tecnicosTerceirizados.includes(tecnico) && tecnico !== 'Técnico Zuttel') ||
-                (technicianType === 'naoEncaminhadas' && tecnico === 'Técnico Zuttel') ||
-                (technicianType === 'todos')
-              ) {
-                try {
-                  const nomeCliente = item.Cliente.split(' - ')[1] || item.Cliente;
-                  let mensagem = `
+          if (!id || !os) continue;
+
+          const item = results.find(row => row.ID === os.trim());
+          if (!item) {
+            logMessage(`Erro: OS ${os.trim()} não encontrada no arquivo CSV.`);
+            continue;
+          }
+
+          // Normaliza nome do técnico para evitar erro com acentos/espaços
+          const tecnico = remove(item.Colaborador.trim());
+          const tecnicoKey = Object.keys(chatsTecnicos).find(key => 
+            remove(key) === tecnico
+          );
+
+          if (!tecnicoKey) {
+            logMessage(`Erro: Chat do técnico "${item.Colaborador}" não encontrado!`);
+            continue;
+          }
+
+          // Filtro de tipo de técnico
+          if (
+            (technicianType === 'terceirizados' && !tecnicosTerceirizados.includes(tecnicoKey)) ||
+            (technicianType === 'internos' && tecnicosTerceirizados.includes(tecnicoKey)) ||
+            (technicianType === 'naoEncaminhadas' && tecnicoKey !== 'Técnico Zuttel')
+          ) {
+            continue;
+          }
+
+          try {
+            const nomeCliente = item.Cliente.split(' - ')[1] || item.Cliente;
+            let mensagem = `
 *OS:* ${item.ID}
 *Cliente:* ${id.trim()} - ${nomeCliente}
 *Endereço:* ${item.Endereço} *Bairro:* ${item.Bairro} *Cidade:* ${item.Cidade}
@@ -301,45 +358,32 @@ function processCSV(client, filePath, messageData, technicianType) {
 *Login PPPoE:* ${item.Login}
 *Senha PPPoE:* ${item['Senha MD5 PPPoE/Hotspot']}`;
 
-                  if (tecnicosTerceirizados.includes(tecnico) || technicianType === 'naoEncaminhadas') {
-                    mensagem += `\n*Telefone do Cliente:* ${item['Telefone celular']}`;
-                  }
-
-                  if (chatsTecnicos[tecnico]) {
-                    if (currentChat !== chatsTecnicos[tecnico]) {
-                      currentChat = chatsTecnicos[tecnico];
-                      orderCounter = 1;
-                    }
-                    mensagem = `*${orderCounter}° da rota*\n` + mensagem;
-                    await buscarEEnviarMensagem(client, currentChat, mensagem);
-                    orderCounter++;
-                    
-                    // Atualiza o progresso
-                    processedMessages++;
-                    const progress = Math.round((processedMessages / totalMessages) * 100);
-                    
-                    // Envia atualização de progresso para todos os clientes conectados
-                    const progressData = JSON.stringify({ progress });
-                    clients.forEach(client => {
-                      client.write(`data: ${progressData}\n\n`);
-                    });
-                  } else {
-                    console.error(`Chat do técnico "${tecnico}" não encontrado!`);
-                    logMessage(`Erro: Chat do técnico "${tecnico}" não encontrado!`);
-                  }
-                } catch (error) {
-                  console.error('Erro ao enviar mensagem:', error);
-                  logMessage(`Erro ao enviar mensagem: ${error.message}`);
-                }
-              }
-            } else {
-              console.error(`OS ${os.trim()} não encontrada no arquivo CSV.`);
-              logMessage(`Erro: OS ${os.trim()} não encontrada no arquivo CSV.`);
+            if (tecnicosTerceirizados.includes(tecnicoKey) || technicianType === 'naoEncaminhadas') {
+              mensagem += `\n*Telefone do Cliente:* ${item['Telefone celular']}`;
             }
+
+            // Se mudou o chat, zera contador
+            if (currentChat !== chatsTecnicos[tecnicoKey]) {
+              currentChat = chatsTecnicos[tecnicoKey];
+              orderCounter = 1;
+            }
+
+            mensagem = `*${orderCounter}° da rota*\n` + mensagem;
+
+            // ✅ ENVIA A MENSAGEM PARA O GRUPO CORRETO
+            await buscarEEnviarMensagem(client, currentChat, mensagem, cachedChats);
+
+            orderCounter++;
+            processedMessages++;
+
+            const progress = Math.round((processedMessages / totalMessages) * 100);
+            const progressData = JSON.stringify({ progress });
+            clients.forEach(client => client.write(`data: ${progressData}\n\n`));
+          } catch (error) {
+            logMessage(`Erro ao enviar mensagem: ${error.message}`);
           }
         }
 
-        // Notifica conclusão para todos os clientes conectados
         const completeData = JSON.stringify({ progress: 100, complete: true });
         clients.forEach(client => {
           client.write(`data: ${completeData}\n\n`);
@@ -347,12 +391,8 @@ function processCSV(client, filePath, messageData, technicianType) {
         });
 
         logMessage('Processamento concluído com sucesso!');
-
       } catch (error) {
-        console.error('Erro ao processar mensagens:', error);
         logMessage(`Erro ao processar mensagens: ${error.message}`);
-        
-        // Notifica erro para todos os clientes conectados
         const errorData = JSON.stringify({ error: error.message });
         clients.forEach(client => {
           client.write(`data: ${errorData}\n\n`);
@@ -361,6 +401,7 @@ function processCSV(client, filePath, messageData, technicianType) {
       }
     });
 }
+
 
 function parseMessageData(data) {
   const lines = data.split('\n');
@@ -374,24 +415,30 @@ function parseMessageData(data) {
   return map;
 }
 
-async function buscarEEnviarMensagem(client, nomeChat, mensagem) {
+async function buscarEEnviarMensagem(client, nomeChat, mensagem, chatsCache) {
   try {
-    const chats = await client.getAllChats();
-    const chatEncontrado = chats.find((chat) => chat.name === nomeChat);
+    // Usa o cache global (se estiver vazio, tenta atualizar uma vez)
+    if (cachedChats.length === 0) {
+      await updateChatsCache(client);
+    }
+
+    const chatEncontrado = cachedChats.find((chat) => chat.name === nomeChat);
 
     if (chatEncontrado) {
       console.log(`Chat "${nomeChat}" encontrado! ID: ${chatEncontrado.id._serialized}`);
       logMessage(`Chat "${nomeChat}" encontrado! ID: ${chatEncontrado.id._serialized}`);
       await enviarMensagens(client, chatEncontrado.id._serialized, mensagem);
     } else {
-      console.error(`Chat "${nomeChat}" não encontrado!`);
-      logMessage(`Erro: Chat "${nomeChat}" não encontrado!`);
+      console.error(`Chat "${nomeChat}" não encontrado no cache!`);
+      logMessage(`Erro: Chat "${nomeChat}" não encontrado no cache!`);
     }
   } catch (error) {
     console.error(`Erro ao buscar o chat "${nomeChat}":`, error);
     logMessage(`Erro ao buscar o chat "${nomeChat}": ${error.message}`);
   }
 }
+
+
 
 async function enviarMensagens(client, chat, mensagem) {
   try {
@@ -439,7 +486,6 @@ async function processEncaixe(client, filePath, osNumber, technicianName) {
                         }
 
                         if (chatsTecnicos[tecnico]) {
-                            await buscarEEnviarMensagem(client, chatsTecnicos[tecnico], mensagem);
                             
                             // Notifica conclusão
                             const completeData = JSON.stringify({ progress: 100, complete: true });

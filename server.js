@@ -99,7 +99,7 @@ function logMessage(message) {
 
 wppconnect.create({
   session: 'sessionName',
-  headless: false,
+  headless: true,
   useChrome: true,
   browserArgs: [
     '--no-sandbox',

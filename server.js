@@ -1,5 +1,6 @@
 const express = require('express');
 const wppconnect = require('@wppconnect-team/wppconnect');
+const puppeteer = require('puppeteer');
 const multer = require('multer');
 const csv = require('csv-parser');
 const fs = require('fs');
@@ -104,7 +105,7 @@ function logMessage(message) {
 wppconnect.create({
   session: 'sessionName',
   headless: false,
-  useChrome: true,
+  useChrome: false,
   browserArgs: [
     '--no-sandbox',
     '--disable-setuid-sandbox',

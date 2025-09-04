@@ -62,7 +62,11 @@ const chatsTecnicos = {
     'Téc Terceirizado - Cleverson Gregorio dos Santos': 'Instalações - Cleverson',
     'Técnico Zuttel': 'OS´s não encaminhadas',
     'Téc Terceirizado WENDEL - José Carlos de Castilho': 'Atendimentos José - Wendel',
-    'Saulo Venancio Carneiro da Cunha': 'Provisório Atendimentos Saulo',
+    'Saulo Venancio Carneiro da Cunha': 'Atendimentos Saulo',
+    'Benicio Rodrigues de Moraes Junior': 'Atendimentos Benício',
+    'Uilderlanio Ferreira Braz': 'Atendimentos Uilderlanio',
+    'Vinicius Roseo Matos Sousa': 'Atendimentos Vinícius',
+    
 };
 
 const tecnicosTerceirizados = [
@@ -99,7 +103,7 @@ function logMessage(message) {
 
 wppconnect.create({
   session: 'sessionName',
-  headless: true,
+  headless: false,
   useChrome: true,
   browserArgs: [
     '--no-sandbox',

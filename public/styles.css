@@ -1,494 +1,375 @@
-/* Paleta de cores */
+/* Tema preto e branco */
 :root {
-  --primary-color: #007bff;
-  --primary-hover-color: #0056b3;
-  --secondary-color: #cf84fa;
-  --background-color-light: #f4f4f4;
-  --background-color-dark: #6C0C6D;
-  --container-background-light: #fff;
-  --container-background-dark: #1e1e1e;
-  --text-color-light: #333;
-  --text-color-dark: #e0e0e0;
-  --label-color-light: #555;
-  --label-color-dark: #bbbbbb;
-  --input-background-light: #fff;
-  --input-background-dark: #333;
-  --input-border-light: #ccc;
-  --input-border-dark: #555;
+  --bg-light: #fff;
+  --bg-dark: #181818;
+  --bg-grey: #f5f5f5;
+  --bg-grey-dark: #222;
+  --text-light: #222;
+  --text-dark: #f5f5f5;
+  --border-light: #ccc;
+  --border-dark: #444;
+  --accent-light: #e0e0e0;
+  --accent-dark: #333;
+}
+
+/* Reset básico */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  font-family: Arial, sans-serif;
-  background-color: var(--background-color-light);
-  margin: 0;
-  padding: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  height: 100vh;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: var(--bg-grey);
+  color: var(--text-light);
+  min-height: 100vh;
 }
 
-.container {
-  background-color: var(--container-background-light);
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-  max-width: 800px;
-  width: 100%;
-  margin-top: 100px;
-}
-
-h1 {
-  text-align: center;
-  color: var(--text-color-light);
-}
-
-form {
-  display: flex;
-  flex-direction: column;
-}
-
-label {
-  margin-bottom: 5px;
-  color: var(--label-color-light);
-}
-
-input[type="file"],
-textarea {
-  margin-bottom: 15px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: var(--input-background-light);
-  color: var(--text-color-light);
-  resize: vertical;
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  font-size: 14px;
-  line-height: 1.5;
-  white-space: pre;           /* Mantém os tabs */
-  tab-size: 8;               /* Ajusta o tamanho do tab para melhor visualização */
-  -moz-tab-size: 8;
-  -o-tab-size: 8;
-  letter-spacing: 1px;       /* Melhora a legibilidade dos números */
-  min-height: 150px;
-  width: calc(100% - 22px);
-}
-
-textarea:focus {
-  outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
-}
-
-/* Estilo para o placeholder do textarea */
-textarea::placeholder {
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-  color: #999;
-  white-space: pre;
-}
-
-/* Adicione estilos para melhor visualização no modo escuro */
-@media (prefers-color-scheme: dark) {
-    textarea {
-        background-color: #2d2d2d;
-        color: #e0e0e0;
-    }
-    
-    textarea::placeholder {
-        color: #666;
-    }
-}
-
-/* Ajuste responsivo para o textarea */
-@media (max-width: 600px) {
-  textarea {
-    font-size: 13px;
-    min-height: 120px;
-  }
-}
-
-button {
-  padding: 10px;
-  background-color: var(--primary-color);
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 10px; /* Adicionar margem direita para espaçamento entre botões */
-  flex: 1; /* Garantir que todos os botões tenham o mesmo tamanho */
-  color: black;
-}
-
-button:last-child {
-  margin-right: 0; /* Remover margem direita do último botão */
-}
-
-button:hover {
-  background-color: var(--primary-hover-color);
-}
-
-/* Estilo para o select (filtro de tipos de técnicos) */
-select {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 15px;
-  border: 1px solid var(--input-border-light);
-  border-radius: 4px;
-  background-color: var(--input-background-light);
-  color: var(--text-color-light);
-  font-size: 16px;
-  appearance: none; /* Remove o estilo padrão do navegador */
-  background-image: url('data:image/svg+xml;charset=US-ASCII,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 5"><path fill="%23333" d="M2 0L0 2h4z"/></svg>');
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 10px;
-  cursor: pointer;
-}
-
-select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-}
-
-/* Estilos responsivos para dispositivos móveis */
-@media (max-width: 600px) {
-  .container {
-    padding: 15px;
-  }
-  
-  h1 {
-    font-size: 1.5em;
-  }
-  
-  label,
-  input[type="file"],
-  textarea,
-  button {
-    font-size: 1em;
-  }
-  
-  textarea {
-    width: 100%;
-    height: 120px; /* Ajuste do tamanho do textarea */
-  }
-  
-  .agendamento,
-  .agen {
-    flex-direction: row; /* Ajustar direção dos botões para linha */
-    flex-wrap: wrap; /* Permitir quebra de linha se necessário */
-  }
-
-  .agendamento button,
-  .agen button {
-    flex: 1 1 45%; /* Garantir que os botões ocupem 45% da largura e permitam quebra de linha */
-    margin-bottom: 10px; /* Adicionar margem inferior para espaçamento entre linhas */
-  }
-}
-
-/* Estilos responsivos adicionais para dispositivos móveis */
-@media (max-width: 480px) {
-  .container {
-    padding: 10px;
-  }
-  
-  body {
-    margin: 10%;
-  }
-  
-  h1 {
-    font-size: 1.2em;
-  }
-  
-  label,
-  input[type="file"],
-  textarea,
-  button {
-    font-size: 0.9em;
-  }
-  
-  textarea {
-    width: 90%;
-    height: 100px; /* Ajuste do tamanho do textarea */
-  }
-  
-  .agendamento,
-  .agen {
-    flex-direction: row; /* Ajustar direção dos botões para linha */
-    flex-wrap: wrap; /* Permitir quebra de linha se necessário */
-  }
-
-  .agendamento button,
-  .agen button {
-    flex: 1 1 45%; /* Garantir que os botões ocupem 45% da largura e permitam quebra de linha */
-    margin-bottom: 10px; /* Adicionar margem inferior para espaçamento entre linhas */
-  }
-}
-
-@media (max-width: 360px) {
-  .container {
-    padding: 8px;
-  }
-  
-  h1 {
-    font-size: 1em;
-  }
-  
-  label,
-  input[type="file"],
-  textarea,
-  button {
-    font-size: 0.8em;
-  }
-  
-  textarea {
-    width: 100%;
-    height: 80px; /* Ajuste do tamanho do textarea */
-  }
-  
-  .agendamento,
-  .agen {
-    flex-direction: row; /* Ajustar direção dos botões para linha */
-    flex-wrap: wrap; /* Permitir quebra de linha se necessário */
-  }
-
-  .agendamento button,
-  .agen button {
-    flex: 1 1 45%; /* Garantir que os botões ocupem 45% da largura e permitam quebra de linha */
-    margin-bottom: 10px; /* Adicionar margem inferior para espaçamento entre linhas */
-  }
-}
-
-/* Estilos para modo escuro */
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: var(--background-color-dark);
-    color: var(--text-color-dark);
-  }
-  
-  .container {
-    background-color: var(--container-background-dark);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-  }
-  
-  h1 {
-    color: var(--text-color-dark);
-  }
-  
-  label {
-    color: var(--label-color-dark);
-  }
-  
-  input[type="file"],
-  textarea {
-    background-color: var(--input-background-dark);
-    border: 1px solid var(--input-border-dark);
-    color: var(--text-color-dark);
-  }
-  
-  button {
-    background-color: var(--secondary-color);
-  }
-  
-  button:hover {
-    background-color: var(--primary-hover-color);
-  }
-}
-
-.logo {
-  justify-content: space-between;
-  margin-bottom: 50px;
-}
-
-.logo1 {
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.agendamento,
-.agen {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 10px;
-  gap: 10px; /* Espaçamento entre botões */
-}
-
-.color {
-  background-color: coral;
-}
-
-.csv {
-  background-color: #f0f0f0;
-  color: #333;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 10px;
-  cursor: pointer;
-}
-
-.tam {
-  width: 100%;
-  padding: 10px;
-  margin-bottom: 15px;
-  color: black  ;
-  font-size: 16px;
-  width: 100%;
-  height: 55px;
-}
-
-.layout {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 10px;
-  gap: 10px; /* Espaçamento entre botões */
-}
-
-/* Estilos para o menu de navegação */
 .navbar {
-  background: linear-gradient(135deg, #1a1a1a, #333);
-  padding: 1rem 2rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  background: var(--bg-dark);
+  padding: 0.5rem 2rem;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
 }
 
-.nav-brand {
-  display: flex;
-  align-items: center;
-}
-
-.nav-logo {
+.nav-brand .nav-logo {
   height: 40px;
-  margin-right: 1rem;
 }
 
 .nav-links {
-  display: flex;
   list-style: none;
-  margin: 0;
-  padding: 0;
-  gap: 2rem;
+  display: flex;
+  gap: 1.5rem;
 }
 
 .nav-item {
-  color: #fff;
+  color: var(--text-dark);
   text-decoration: none;
   font-weight: 500;
   padding: 0.5rem 1rem;
   border-radius: 4px;
-  transition: all 0.3s ease;
+  transition: background 0.2s;
 }
 
-.nav-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
-}
-
+.nav-item:hover,
 .nav-item.active {
-  background: #6C0C6D;
-  color: white;
+  background: var(--accent-dark);
+  color: var(--text-dark);
 }
 
-/* Responsividade */
-@media (max-width: 768px) {
-  .navbar {
-    flex-direction: column;
-    padding: 1rem;
-  }
-
-  .nav-links {
-    flex-direction: column;
-    width: 100%;
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .nav-item {
-    text-align: center;
-    display: block;
-  }
+.container {
+  max-width: 700px;
+  margin: 2rem auto;
+  background: var(--bg-light);
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  padding: 2rem;
 }
 
-/* Adicione ao final do arquivo styles.css */
+h1, h3 {
+  color: var(--bg-dark);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+label {
+  display: block;
+  margin: 1rem 0 0.3rem 0;
+  font-weight: 500;
+  color: var(--bg-dark);
+}
+
+input[type="file"],
+input[type="time"],
+select,
+textarea {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.7rem;
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  font-size: 1rem;
+  background: var(--bg-grey);
+  transition: border 0.2s;
+  color: var(--text-light);
+}
+
+input[type="file"] {
+  padding: 0.3rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--bg-dark);
+  outline: none;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+button {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+  border: none;
+  padding: 0.7rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-right: 0.5rem;
+  margin-top: 0.5rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+button:hover,
+button:focus {
+  background: var(--accent-dark);
+  color: var(--text-dark);
+}
+
+.agendamento, .agen, .layout {
+  display: flex;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
 .progress-container {
-    margin-top: 20px;
-    text-align: center;
+  margin-top: 2rem;
+  background: var(--bg-grey);
+  border-radius: 6px;
+  padding: 1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
 
 .progress-bar {
-    width: 100%;
-    height: 20px;
-    background-color: #f0f0f0;
-    border-radius: 10px;
-    overflow: hidden;
-    margin: 10px 0;
+  width: 100%;
+  height: 18px;
+  background: var(--accent-light);
+  border-radius: 9px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
 }
 
 .progress {
-    width: 0%;
-    height: 100%;
-    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-    transition: width 0.3s ease;
+  height: 100%;
+  background: var(--bg-dark);
+  width: 0%;
+  transition: width 0.3s;
+  border-radius: 9px;
 }
 
 #progressText {
-    font-weight: bold;
-    color: var(--text-color-light);
+  font-size: 1rem;
+  color: var(--bg-dark);
+  text-align: right;
 }
 
-@media (prefers-color-scheme: dark) {
-    .progress-bar {
-        background-color: #333;
-    }
-    #progressText {
-        color: var(--text-color-dark);
-    }
-}
-
-#btnCopiar {
-    background-color: #4CAF50;
-    color: white;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-#btnCopiar:hover {
-    background-color: #45a049;
+input[type="checkbox"] {
+  accent-color: var(--bg-dark);
+  margin-right: 0.3rem;
 }
 
 .select-tecnico {
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background-color: #fff;
+  width: 100%;
 }
 
-.select-tecnico optgroup {
-    font-weight: bold;
-    color: #4a4a4a;
+.form-container {
+  margin-bottom: 1.5rem;
 }
 
-.select-tecnico option {
-    padding: 8px;
-    color: #666;
+#downloadLink {
+  text-decoration: none;
+  font-weight: 500;
 }
 
-.select-tecnico:focus {
-    outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 5px rgba(76, 175, 80, 0.2);
+#downloadLink:hover {
+  text-decoration: underline;
+  color: var(--accent-dark);
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+  color: var(--text-light);
+  margin-top: 1rem;
+}
+
+thead tr {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+th, td {
+  border: 1px solid var(--border-light);
+  padding: 10px 8px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+tbody tr:nth-child(even) {
+  background: var(--bg-grey);
+}
+
+tbody tr:nth-child(odd) {
+  background: var(--bg-light);
+}
+
+.error-message {
+  color: #ff0000;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+input.invalid {
+  border: 1px solid #ff0000;
+}
+
+input.valid {
+  border: 1px solid var(--bg-dark);
+}
+
+/* Tema Dark */
+body.dark-theme {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+body.dark-theme .container {
+  background: var(--bg-grey-dark);
+  color: var(--text-dark);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+}
+
+body.dark-theme h1,
+body.dark-theme h3 {
+  color: var(--text-dark);
+}
+
+body.dark-theme label {
+  color: var(--text-dark);
+}
+
+body.dark-theme input[type="file"],
+body.dark-theme input[type="time"],
+body.dark-theme select,
+body.dark-theme textarea {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+  border: 1px solid var(--border-dark);
+}
+
+body.dark-theme input:focus,
+body.dark-theme select:focus,
+body.dark-theme textarea:focus {
+  border-color: var(--accent-light);
+}
+
+body.dark-theme button {
+  background: var(--accent-dark);
+  color: var(--text-dark);
+}
+
+body.dark-theme button:hover,
+body.dark-theme button:focus {
+  background: var(--bg-light);
+  color: var(--bg-dark);
+}
+
+body.dark-theme .navbar {
+  background: var(--bg-grey-dark);
+}
+
+body.dark-theme .nav-item {
+  color: var(--text-dark);
+}
+
+body.dark-theme .nav-item:hover,
+body.dark-theme .nav-item.active {
+  background: var(--bg-light);
+  color: var(--bg-dark);
+}
+
+body.dark-theme .progress-container {
+  background: var(--bg-grey-dark);
+  color: var(--text-dark);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+body.dark-theme .progress-bar {
+  background: var(--accent-dark);
+}
+
+body.dark-theme .progress {
+  background: var(--bg-light);
+}
+
+body.dark-theme #progressText {
+  color: var(--text-dark);
+}
+
+body.dark-theme table {
+  background: var(--bg-grey-dark);
+  color: var(--text-dark);
+}
+
+body.dark-theme thead tr {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+body.dark-theme th,
+body.dark-theme td {
+  border: 1px solid var(--border-dark);
+}
+
+body.dark-theme tbody tr:nth-child(even) {
+  background: var(--bg-dark);
+}
+
+body.dark-theme tbody tr:nth-child(odd) {
+  background: var(--bg-grey-dark);
+}
+
+body.dark-theme #downloadLink {
+  color: var(--bg-light);
+}
+
+body.dark-theme #downloadLink:hover {
+  color: var(--accent-light);
+}
+
+body.dark-theme .error-message {
+  color: #ff8c8c;
+}
+
+body.dark-theme input.invalid {
+  border: 1px solid #ff8c8c;
+}
+
+body.dark-theme input.valid {
+  border: 1px solid var(--bg-light);
+}
+
+/* Responsividade */
+@media (max-width: 800px) {
+  .container {
+    max-width: 98vw;
+    padding: 1rem;
+  }
+  .navbar {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .nav-links {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
 }

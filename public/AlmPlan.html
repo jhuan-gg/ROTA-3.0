@@ -35,7 +35,7 @@
                 <button onclick="copiarConteudo()" id="btnCopiar">Copiar Conteúdo</button>
             </div>
         </div>
-        <div id="tableContainer" style="margin-top: 20px; max-height: 500px; overflow-y: auto; overflow-x: auto; border: 1px solid #ddd; border-radius: 4px; padding: 10px;"></div>
+        <div id="tableContainer"></div>
     </div>
     <script>
         function processFiles() {
@@ -155,7 +155,7 @@
                 }
 
                 return {
-                    'ID CLIENTE': row['ID CLIENTE'],
+                    'ID CLIENTE': row['ID'],
                     'ID OS': row['ID O.S.'],
                     'AGENDAMENTO': agendamento,
                     'Bairro': formattedCity,

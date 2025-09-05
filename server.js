@@ -169,8 +169,8 @@ function logMessage(message) {
 function iniciarWppConnect() {
   return wppconnect.create({
     session: 'sessionName',
-    headless: true,
-    useChrome: false,
+    headless: false,
+    useChrome: true,
     protocolTimeout: 60000, // 60 segundos para Railway
     browserArgs: [
       '--no-sandbox',

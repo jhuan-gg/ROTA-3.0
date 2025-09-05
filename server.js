@@ -20,48 +20,16 @@ app.post('/restart-session', async (req, res) => {
       globalClient = null;
       console.log('Client antigo fechado.');
     }
-    // Cria nova instância do WPPConnect
-    wppconnect.create({
-      session: 'sessionName',
-      headless: true,
-      useChrome: false,
-      browserArgs: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-zygote',
-        '--disable-gpu'
-      ],
-      catchQR: (base64Qr, asciiQR, attempts, urlCode) => {
-        try {
-          const base64Data = base64Qr.replace(/^data:image\/png;base64,/, "");
-          fs.writeFileSync(path.join(__dirname, 'public', 'qr.png'), base64Data, 'base64');
-          console.log('QR code salvo como imagem em public/qr.png');
-        } catch (err) {
-          console.error('Erro ao salvar QR code como imagem:', err);
-        }
-        sendQrToClients(base64Qr);
-        console.log(asciiQR);
-        logMessage(`QR Code gerado: ${asciiQR}`);
-      },
-      statusFind: (statusSession, session) => {
-        console.log('Status Session:', statusSession);
-        console.log('Session name:', session);
-        logMessage(`Status da sessão: ${statusSession}, Nome da sessão: ${session}`);
-      }
-    })
-    .then((client) => {
-      globalClient = client;
-      start(client);
-      console.log('Novo client WPPConnect iniciado!');
-      res.json({ status: 'Sessão reiniciada!' });
-    })
-    .catch((error) => {
-      console.error('Erro ao reiniciar o WPPConnect:', error);
-      logMessage(`Erro ao reiniciar o WPPConnect: ${error.message}`);
-      res.status(500).json({ status: 'ERRO', error: error.message });
-    });
+    // Chama a função de inicialização centralizada
+    iniciarWppConnect()
+      .then(() => {
+        res.json({ status: 'Sessão reiniciada!' });
+      })
+      .catch((error) => {
+        console.error('Erro ao reiniciar o WPPConnect:', error);
+        logMessage(`Erro ao reiniciar o WPPConnect: ${error.message}`);
+        res.status(500).json({ status: 'ERRO', error: error.message });
+      });
   } catch (err) {
     console.error('Erro ao reiniciar sessão:', err);
     res.status(500).json({ status: 'ERRO', error: err.message });
@@ -193,44 +161,51 @@ function logMessage(message) {
     fs.appendFileSync(logFile, logEntry);
 }
 
-wppconnect.create({
-  session: 'sessionName',
-  headless: false,
-  useChrome: true,
-  protocolTimeout: 60000, // 60 segundos para Railway
-  browserArgs: [
-    '--no-sandbox',
-    '--disable-setuid-sandbox',
-    '--disable-dev-shm-usage',
-    '--disable-accelerated-2d-canvas',
-    '--no-zygote',
-    '--disable-gpu'
-  ],
-  catchQR: (base64Qr, asciiQR, attempts, urlCode) => {
-    // Salva o QR code como imagem PNG
-    try {
-      const base64Data = base64Qr.replace(/^data:image\/png;base64,/, "");
-      fs.writeFileSync(path.join(__dirname, 'public', 'qr.png'), base64Data, 'base64');
-      console.log('QR code salvo como imagem em public/qr.png');
-    } catch (err) {
-      console.error('Erro ao salvar QR code como imagem:', err);
+
+function iniciarWppConnect() {
+  return wppconnect.create({
+    session: 'sessionName',
+    headless: false,
+    useChrome: true,
+    protocolTimeout: 60000, // 60 segundos para Railway
+    browserArgs: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-zygote',
+      '--disable-gpu'
+    ],
+    catchQR: (base64Qr, asciiQR, attempts, urlCode) => {
+      // Salva o QR code como imagem PNG
+      try {
+        const base64Data = base64Qr.replace(/^data:image\/png;base64,/, "");
+        fs.writeFileSync(path.join(__dirname, 'public', 'qr.png'), base64Data, 'base64');
+        console.log('QR code salvo como imagem em public/qr.png');
+      } catch (err) {
+        console.error('Erro ao salvar QR code como imagem:', err);
+      }
+      // Envia o QR code em base64 para o front via SSE
+      sendQrToClients(base64Qr);
+      console.log(asciiQR);
+      logMessage(`QR Code gerado: ${asciiQR}`);
+    },
+    statusFind: (statusSession, session) => {
+      console.log('Status Session:', statusSession);
+      console.log('Session name:', session);
+      logMessage(`Status da sessão: ${statusSession}, Nome da sessão: ${session}`);
     }
-    // Envia o QR code em base64 para o front via SSE
-    sendQrToClients(base64Qr);
-    console.log(asciiQR);
-    logMessage(`QR Code gerado: ${asciiQR}`);
-  },
-  statusFind: (statusSession, session) => {
-    console.log('Status Session:', statusSession);
-    console.log('Session name:', session);
-    logMessage(`Status da sessão: ${statusSession}, Nome da sessão: ${session}`);
-  }
-})
-.then((client) => start(client))
-.catch((error) => {
-  console.error('Erro ao iniciar o WPPConnect:', error);
-  logMessage(`Erro ao iniciar o WPPConnect: ${error.message}`);
-});
+  })
+  .then((client) => start(client))
+  .catch((error) => {
+    console.error('Erro ao iniciar o WPPConnect:', error);
+    logMessage(`Erro ao iniciar o WPPConnect: ${error.message}`);
+    throw error;
+  });
+}
+
+// Inicialização única ao subir o servidor
+iniciarWppConnect();
 
 
 // 🟢 FUNÇÃO PRINCIPAL

@@ -23,8 +23,8 @@ app.post('/restart-session', async (req, res) => {
     // Cria nova instância do WPPConnect
     wppconnect.create({
       session: 'sessionName',
-      headless: false,
-      useChrome: true,
+      headless: true,
+      useChrome: false,
       browserArgs: [
         '--no-sandbox',
         '--disable-setuid-sandbox',

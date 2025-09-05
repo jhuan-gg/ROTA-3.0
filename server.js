@@ -197,6 +197,7 @@ wppconnect.create({
   session: 'sessionName',
   headless: false,
   useChrome: true,
+  protocolTimeout: 60000, // 60 segundos para Railway
   browserArgs: [
     '--no-sandbox',
     '--disable-setuid-sandbox',

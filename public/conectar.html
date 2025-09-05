@@ -21,7 +21,10 @@
     <div class="container">
         <h1>Conectar ao WhatsApp</h1>
         <div id="status"></div>
-        <img src="qr.png" id="qrCodeImg" alt="QR Code para conexão" style="max-width:300px;display:block;margin:20px auto;">
+        <div id="qrContainer">
+            <img src="qr.png" id="qrCodeImg" alt="QR Code para conexão" style="max-width:300px;display:none;margin:20px auto;">
+            <div id="qrMsg" style="text-align:center;color:#888;"></div>
+        </div>
         <button id="refreshBtn" style="display:none;">Gerar novo QR Code</button>
     </div>
     <script>
@@ -35,15 +38,28 @@
                 const res = await fetch('/status-session');
                 const data = await res.json();
                 document.getElementById('status').textContent = data.status;
+                const qrImg = document.getElementById('qrCodeImg');
+                const qrMsg = document.getElementById('qrMsg');
                 if (data.status === 'CONNECTED') {
-                    const qrImg = document.getElementById('qrCodeImg');
                     qrImg.style.display = 'none';
                     qrImg.src = '';
+                    qrMsg.textContent = '✅ WhatsApp conectado!';
                     document.getElementById('refreshBtn').style.display = 'none';
-                } else {
-                    document.getElementById('qrCodeImg').style.display = 'block';
-                    document.getElementById('refreshBtn').style.display = 'block';
+                } else if (data.status === 'DESCONECTADO') {
+                    qrImg.style.display = 'block';
                     updateQrImage();
+                    qrMsg.textContent = 'Escaneie o QR code para conectar.';
+                    document.getElementById('refreshBtn').style.display = 'block';
+                } else if (data.status === 'ERRO') {
+                    qrImg.style.display = 'none';
+                    qrImg.src = '';
+                    qrMsg.textContent = '❌ Erro ao conectar. Tente reiniciar a sessão.';
+                    document.getElementById('refreshBtn').style.display = 'block';
+                } else {
+                    qrImg.style.display = 'none';
+                    qrImg.src = '';
+                    qrMsg.textContent = 'Aguardando status...';
+                    document.getElementById('refreshBtn').style.display = 'none';
                 }
             } catch (err) {
                 document.getElementById('status').textContent = 'Erro ao verificar status.';

@@ -243,6 +243,16 @@ async function start(client) {
     logMessage(`Estado atual do WhatsApp: ${state}`);
 
     if (state === 'CONNECTED') {
+      // Remove o QR code antigo
+      const qrPath = path.join(__dirname, 'public', 'qr.png');
+      if (fs.existsSync(qrPath)) {
+        try {
+          fs.unlinkSync(qrPath);
+          console.log('QR code removido após conexão.');
+        } catch (err) {
+          console.error('Erro ao remover QR code:', err);
+        }
+      }
       console.log('✅ Conexão confirmada, atualizando cache de chats...');
       await updateChatsCache(client);
 

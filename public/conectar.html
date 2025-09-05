@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conectar WhatsApp</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <img src="./zuttel.png" alt="Logo Zuttel" class="nav-logo">
+            </div>
+            <ul class="nav-links">
+                <li><a href="index.html" class="nav-item">Enviar Rota</a></li>
+                <li><a href="agendamento.html" class="nav-item">Agendar Envio de Rota</a></li>
+                <li><a href="AlmPlan.html" class="nav-item">Alimentar Planilha</a></li>
+                <li><a href="conectar.html" class="nav-item active">Conectar WhatsApp</a></li>
+            </ul>
+        </nav>
+    <div class="container">
+        <h1>Conectar ao WhatsApp</h1>
+        <div id="status"></div>
+        <img src="qr.png" id="qrCodeImg" alt="QR Code para conexão" style="max-width:300px;display:block;margin:20px auto;">
+        <button id="refreshBtn" style="display:none;">Gerar novo QR Code</button>
+    </div>
+    <script>
+        function updateQrImage() {
+            const qrImg = document.getElementById('qrCodeImg');
+            qrImg.src = 'qr.png?t=' + new Date().getTime(); // força atualização
+        }
+
+        async function checkStatus() {
+            try {
+                const res = await fetch('/status-session');
+                const data = await res.json();
+                document.getElementById('status').textContent = data.status;
+                if (data.status === 'CONNECTED') {
+                    document.getElementById('qrCodeImg').style.display = 'none';
+                    document.getElementById('refreshBtn').style.display = 'none';
+                } else {
+                    document.getElementById('qrCodeImg').style.display = 'block';
+                    document.getElementById('refreshBtn').style.display = 'block';
+                    updateQrImage();
+                }
+            } catch (err) {
+                document.getElementById('status').textContent = 'Erro ao verificar status.';
+            }
+        }
+        checkStatus();
+        setInterval(checkStatus, 5000);
+
+        // SSE para atualização automática do QR code
+        const qrEventSource = new EventSource('/qr');
+        qrEventSource.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.qr) {
+                    // Atualiza a imagem do QR code
+                    updateQrImage();
+                }
+            } catch (e) {}
+        };
+
+        document.getElementById('refreshBtn').onclick = async function() {
+            await fetch('/restart-session', { method: 'POST' });
+            setTimeout(() => {
+                checkStatus();
+                updateQrImage();
+            }, 3000);
+        };
+    </script>
+</body>
+</html>

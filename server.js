@@ -1,4 +1,9 @@
+// ...existing code...
+
+// Endpoint para reiniciar a sessão do WhatsApp
+
 const express = require('express');
+const app = express();
 const wppconnect = require('@wppconnect-team/wppconnect');
 const puppeteer = require('puppeteer');
 const multer = require('multer');
@@ -6,14 +11,97 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const schedule = require('node-schedule'); 
 const path = require('path');
+
+app.post('/restart-session', async (req, res) => {
+  try {
+    // Fecha o client atual se existir
+    if (globalClient && typeof globalClient.close === 'function') {
+      await globalClient.close();
+      globalClient = null;
+      console.log('Client antigo fechado.');
+    }
+    // Cria nova instância do WPPConnect
+    wppconnect.create({
+      session: 'sessionName',
+      headless: false,
+      useChrome: true,
+      browserArgs: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-zygote',
+        '--disable-gpu'
+      ],
+      catchQR: (base64Qr, asciiQR, attempts, urlCode) => {
+        try {
+          const base64Data = base64Qr.replace(/^data:image\/png;base64,/, "");
+          fs.writeFileSync(path.join(__dirname, 'public', 'qr.png'), base64Data, 'base64');
+          console.log('QR code salvo como imagem em public/qr.png');
+        } catch (err) {
+          console.error('Erro ao salvar QR code como imagem:', err);
+        }
+        sendQrToClients(base64Qr);
+        console.log(asciiQR);
+        logMessage(`QR Code gerado: ${asciiQR}`);
+      },
+      statusFind: (statusSession, session) => {
+        console.log('Status Session:', statusSession);
+        console.log('Session name:', session);
+        logMessage(`Status da sessão: ${statusSession}, Nome da sessão: ${session}`);
+      }
+    })
+    .then((client) => {
+      globalClient = client;
+      start(client);
+      console.log('Novo client WPPConnect iniciado!');
+      res.json({ status: 'Sessão reiniciada!' });
+    })
+    .catch((error) => {
+      console.error('Erro ao reiniciar o WPPConnect:', error);
+      logMessage(`Erro ao reiniciar o WPPConnect: ${error.message}`);
+      res.status(500).json({ status: 'ERRO', error: error.message });
+    });
+  } catch (err) {
+    console.error('Erro ao reiniciar sessão:', err);
+    res.status(500).json({ status: 'ERRO', error: err.message });
+  }
+});
+// Endpoint para retornar status da sessão
+app.get('/status-session', async (req, res) => {
+  try {
+    if (!globalClient) return res.json({ status: 'DESCONECTADO' });
+    const state = await globalClient.getConnectionState();
+    res.json({ status: state });
+  } catch (err) {
+    res.json({ status: 'ERRO', error: err.message });
+  }
+});
 const { format } = require('date-fns');
 const { zonedTimeToUtc, format: formatTz } = require('date-fns-tz'); 
+
 const { remove } = require('diacritics'); // instale com: npm install diacritics
+
+// Set para armazenar conexões SSE para QR code
+const qrClients = new Set();
+
+// Rota SSE para enviar QR code em tempo real
+app.get('/qr', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  qrClients.add(res);
+  req.on('close', () => qrClients.delete(res));
+});
+
+// Função para enviar QR code para todos os clientes conectados
+function sendQrToClients(base64Qr) {
+  const data = JSON.stringify({ qr: base64Qr });
+  qrClients.forEach(client => client.write(`data: ${data}\n\n`));
+}
 
 let globalClient = null; // ✅ Variável global para armazenar o client
 
-
-const app = express();
 const port = 3000;
 
 const upload = multer({ dest: 'uploads/' });
@@ -67,6 +155,8 @@ const chatsTecnicos = {
     'Benicio Rodrigues de Moraes Junior': 'Atendimentos Benício',
     'Uilderlanio Ferreira Braz': 'Atendimentos Uilderlanio',
     'Vinicius Roseo Matos Sousa': 'Atendimentos Vinícius',
+    'Téc Terceirizado WENDEL - Diego Fernandes': 'Atendimentos Diego - Wendel',
+
     
 };
 
@@ -81,6 +171,7 @@ const tecnicosTerceirizados = [
     'Téc Terceirizado EZEQUIEL - Ezequiel dos Santos',
     'Téc Terceirizado - Cleverson Gregorio dos Santos',
     'Téc Terceirizado WENDEL - José Carlos de Castilho',
+    'Téc Terceirizado WENDEL - Diego Fernandes',
 ];
 
 let currentJob = null;
@@ -104,8 +195,8 @@ function logMessage(message) {
 
 wppconnect.create({
   session: 'sessionName',
-  headless: true,
-  useChrome: false,
+  headless: false,
+  useChrome: true,
   browserArgs: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -115,6 +206,16 @@ wppconnect.create({
     '--disable-gpu'
   ],
   catchQR: (base64Qr, asciiQR, attempts, urlCode) => {
+    // Salva o QR code como imagem PNG
+    try {
+      const base64Data = base64Qr.replace(/^data:image\/png;base64,/, "");
+      fs.writeFileSync(path.join(__dirname, 'public', 'qr.png'), base64Data, 'base64');
+      console.log('QR code salvo como imagem em public/qr.png');
+    } catch (err) {
+      console.error('Erro ao salvar QR code como imagem:', err);
+    }
+    // Envia o QR code em base64 para o front via SSE
+    sendQrToClients(base64Qr);
     console.log(asciiQR);
     logMessage(`QR Code gerado: ${asciiQR}`);
   },
@@ -168,25 +269,38 @@ async function start(client) {
   });
 
   app.post('/schedule-message', upload.single('csvFile'), (req, res) => {
-    const { messageData, scheduleTime, scheduleDays, technicianType } = req.body;
-    if (req.file && messageData && scheduleTime && scheduleDays && technicianType) {
-        console.log(`Arquivo CSV recebido para agendamento: ${req.file.path}`);
-        logMessage(`Arquivo CSV recebido para agendamento: ${req.file.path}`);
-        const scheduleConfig = {
-            csvFilePath: req.file.path,
-            messageData,
-            scheduleTime,
-            scheduleDays: JSON.parse(scheduleDays),
-            technicianType
-        };
-        fs.writeFileSync('scheduleConfig.json', JSON.stringify(scheduleConfig));
-        logMessage('Configuração de agendamento salva com sucesso!');
-        scheduleMessages(client, scheduleConfig);
-        res.status(200).send({ message: 'Configuração de agendamento salva com sucesso!' });
-    } else {
-        res.status(400).send({ error: 'Dados de agendamento incompletos' });
-        logMessage('Erro: Dados de agendamento incompletos');
-    }
+  const { messageData, scheduleTime, scheduleDays, technicianType } = req.body;
+  console.log('Dados recebidos no /schedule-message:');
+  console.log('req.file:', req.file);
+  console.log('messageData:', messageData);
+  console.log('scheduleTime:', scheduleTime);
+  console.log('scheduleDays:', scheduleDays);
+  console.log('technicianType:', technicianType);
+
+  if (req.file && messageData && scheduleTime && scheduleDays && technicianType) {
+    console.log(`Arquivo CSV recebido para agendamento: ${req.file.path}`);
+    logMessage(`Arquivo CSV recebido para agendamento: ${req.file.path}`);
+    const scheduleConfig = {
+      csvFilePath: req.file.path,
+      messageData,
+      scheduleTime,
+      scheduleDays: JSON.parse(scheduleDays),
+      technicianType
+    };
+    fs.writeFileSync('scheduleConfig.json', JSON.stringify(scheduleConfig));
+    logMessage('Configuração de agendamento salva com sucesso!');
+  scheduleMessages(globalClient, scheduleConfig);
+    res.status(200).send({ message: 'Configuração de agendamento salva com sucesso!' });
+  } else {
+    console.log('Erro: Dados de agendamento incompletos');
+    if (!req.file) console.log('Motivo: req.file está ausente');
+    if (!messageData) console.log('Motivo: messageData está ausente');
+    if (!scheduleTime) console.log('Motivo: scheduleTime está ausente');
+    if (!scheduleDays) console.log('Motivo: scheduleDays está ausente');
+    if (!technicianType) console.log('Motivo: technicianType está ausente');
+    res.status(400).send({ error: 'Dados de agendamento incompletos' });
+    logMessage('Erro: Dados de agendamento incompletos');
+  }
 });
 
   app.post('/clear-schedule', (req, res) => {

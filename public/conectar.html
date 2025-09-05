@@ -50,16 +50,12 @@
                     updateQrImage();
                     qrMsg.textContent = 'Escaneie o QR code para conectar.';
                     document.getElementById('refreshBtn').style.display = 'block';
-                } else if (data.status === 'ERRO') {
+                } else {
+                    // Se status for ERRO ou qualquer outro, só mostra erro se não estiver conectado
                     qrImg.style.display = 'none';
                     qrImg.src = '';
                     qrMsg.textContent = '❌ Erro ao conectar. Tente reiniciar a sessão.';
                     document.getElementById('refreshBtn').style.display = 'block';
-                } else {
-                    qrImg.style.display = 'none';
-                    qrImg.src = '';
-                    qrMsg.textContent = 'Aguardando status...';
-                    document.getElementById('refreshBtn').style.display = 'none';
                 }
             } catch (err) {
                 document.getElementById('status').textContent = 'Erro ao verificar status.';

@@ -171,7 +171,7 @@ function iniciarWppConnect() {
     session: 'sessionName',
     headless: true,
     useChrome: false,
-    protocolTimeout: 60001, // 60 segundos para Railway
+    protocolTimeout: 60000, // 60 segundos para Railway
     browserArgs: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -234,11 +234,7 @@ async function start(client) {
         }
       }
       console.log('✅ Conexão confirmada, atualizando cache de chats...');
-      await updateChatsCache(client);
-
-      if (!cacheInterval) {
-        cacheInterval = setInterval(() => updateChatsCache(client), 5 * 60 * 1000);
-      }
+      await updateChatsCache(client); // Só atualiza uma vez ao conectar
     }
   });
 }

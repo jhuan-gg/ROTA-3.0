@@ -171,7 +171,7 @@ function iniciarWppConnect() {
     session: 'sessionName',
     headless: true,
     useChrome: false,
-    protocolTimeout: 60000, // 60 segundos para Railway
+    protocolTimeout: 60001, // 60 segundos para Railway
     browserArgs: [
       '--no-sandbox',
       '--disable-setuid-sandbox',

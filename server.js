@@ -28,7 +28,11 @@ app.post('/restart-session', async (req, res) => {
       .catch((error) => {
         console.error('Erro ao reiniciar o WPPConnect:', error);
         logMessage(`Erro ao reiniciar o WPPConnect: ${error.message}`);
-        res.status(500).json({ status: 'ERRO', error: error.message });
+        res.status(500).json({
+          status: 'ERRO',
+          error: error.message,
+          stack: error.stack || error
+        });
       });
   } catch (err) {
     console.error('Erro ao reiniciar sessão:', err);
@@ -165,8 +169,8 @@ function logMessage(message) {
 function iniciarWppConnect() {
   return wppconnect.create({
     session: 'sessionName',
-    headless: false,
-    useChrome: true,
+    headless: true,
+    useChrome: false,
     protocolTimeout: 60000, // 60 segundos para Railway
     browserArgs: [
       '--no-sandbox',

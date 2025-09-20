@@ -88,9 +88,16 @@ async function updateChatsCache(client) {
   try {
     const state = await client.getConnectionState();
     if (state === 'CONNECTED') {
-      cachedChats = await client.getAllChats();
-      console.log(`✅ Cache de chats atualizado: ${cachedChats.length} chats carregados`);
-      logMessage(`Cache de chats atualizado: ${cachedChats.length} chats carregados`);
+      const chats = await client.listChats();
+      if (chats && Array.isArray(chats)) {
+        cachedChats = chats;
+        console.log(`✅ Cache de chats atualizado: ${cachedChats.length} chats carregados`);
+        logMessage(`Cache de chats atualizado: ${cachedChats.length} chats carregados`);
+      } else {
+        console.warn('⚠️ listChats não retornou um array válido');
+        cachedChats = [];
+        logMessage('Aviso: listChats não retornou um array válido, cache inicializado vazio');
+      }
     } else {
       console.warn(`⚠️ Não foi possível atualizar cache: estado = ${state}`);
       logMessage(`Aviso: não foi possível atualizar cache: estado = ${state}`);
@@ -98,6 +105,8 @@ async function updateChatsCache(client) {
   } catch (error) {
     console.error('Erro ao atualizar cache de chats:', error);
     logMessage(`Erro ao atualizar cache de chats: ${error.message}`);
+    // Inicializa como array vazio para evitar erros subsequentes
+    cachedChats = [];
   }
 }
 
@@ -522,9 +531,21 @@ function parseMessageData(data) {
 
 async function buscarEEnviarMensagem(client, nomeChat, mensagem, chatsCache) {
   try {
+    // Garante que cachedChats seja um array válido
+    if (!Array.isArray(cachedChats)) {
+      cachedChats = [];
+    }
+    
     // Usa o cache global (se estiver vazio, tenta atualizar uma vez)
     if (cachedChats.length === 0) {
       await updateChatsCache(client);
+    }
+
+    // Verifica novamente se o cache foi atualizado corretamente
+    if (!Array.isArray(cachedChats) || cachedChats.length === 0) {
+      console.error(`Erro: Cache de chats está vazio ou inválido para buscar "${nomeChat}"`);
+      logMessage(`Erro: Cache de chats está vazio ou inválido para buscar "${nomeChat}"`);
+      return;
     }
 
     const chatEncontrado = cachedChats.find((chat) => chat.name === nomeChat);
